@@ -51,6 +51,7 @@ export default function RatingSection({ movieId }) {
           ? ratings.reduce((a, b) => a + b.rating, 0) / realCount
           : 0;
 
+      // Detect existing user rating
       const existing = ratings.find(
         (r) => r.deviceId === deviceId
       );
@@ -63,20 +64,32 @@ export default function RatingSection({ movieId }) {
         setUserRating(0);
       }
 
+      // Fetch boost values safely
       const movieDoc = await getDoc(doc(db, "movies", movieId));
       const movieData = movieDoc.data();
 
       const ratingBoost = movieData?.ratingBoost || 0;
       const ratingCountBoost = movieData?.ratingCountBoost || 0;
 
-      const weightedAverage =
-        (realAverage * realCount + ratingBoost * ratingCountBoost) /
-        (realCount + ratingCountBoost || 1);
+      // Weighted average calculation
+      const boostedTotal =
+        realAverage * realCount +
+        ratingBoost * ratingCountBoost;
 
-      const safeAverage = Math.min(5, weightedAverage);
+      const totalCount =
+        realCount + ratingCountBoost;
 
-      setAverage(Number(safeAverage.toFixed(1)));
-      setCount(realCount + ratingCountBoost);
+      let weightedAverage =
+        totalCount > 0 ? boostedTotal / totalCount : 0;
+
+      // Clamp between 0 and 5
+      weightedAverage = Math.min(
+        5,
+        Math.max(0, weightedAverage)
+      );
+
+      setAverage(Number(weightedAverage.toFixed(1)));
+      setCount(totalCount);
     });
 
     return () => unsubscribe();
@@ -84,6 +97,9 @@ export default function RatingSection({ movieId }) {
 
   const handleRating = async (value) => {
     const deviceId = getDeviceId();
+
+    // Instant UI update (prevents mismatch)
+    setUserRating(value);
 
     if (userRatingDocId) {
       await updateDoc(
@@ -103,15 +119,17 @@ export default function RatingSection({ movieId }) {
     }
   };
 
-  const displayValue = hover || userRating || Math.round(average);
+  // Stars glow ONLY based on hover OR user rating
+  const displayValue =
+    hover !== 0 ? hover : userRating;
 
   return (
     <div className="mt-12 mb-10">
-      <h3 className="text-xl font-semibold mb-4">
+      <h3 className="text-xl font-semibold mb-6">
         Rate This Movie
       </h3>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-6">
         <div className="flex">
           {[1, 2, 3, 4, 5].map((star) => (
             <span
