@@ -8,7 +8,6 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [movies, setMovies] = useState([]);
 
@@ -23,10 +22,12 @@ export default function Navbar() {
   useEffect(() => {
     const fetchMovies = async () => {
       const snapshot = await getDocs(collection(db, "movies"));
-      setMovies(snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })));
+      setMovies(
+        snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }))
+      );
     };
     fetchMovies();
   }, []);
@@ -39,20 +40,25 @@ export default function Navbar() {
       : [];
 
   return (
-    <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${
-      scrolled
-        ? "bg-black/70 backdrop-blur-2xl border-b border-white/10"
-        : "bg-gradient-to-b from-black/80 to-transparent"
-    }`}>
-
+    <motion.nav
+      initial={{ y: -80, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.6 }}
+      className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${
+        scrolled
+          ? "bg-black/70 backdrop-blur-2xl border-b border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.4)]"
+          : "bg-gradient-to-b from-black/80 to-transparent"
+      }`}
+    >
       <div className="flex items-center justify-between px-6 md:px-14 py-4">
 
+        {/* Logo */}
         <Link href="/" className="text-2xl md:text-3xl font-bold text-white">
           Chakradhar <span className="text-red-600">OTT</span>
         </Link>
 
         {/* Desktop Search */}
-        <div className="hidden md:block relative w-72">
+        <div className="relative w-64 hidden md:block">
           <input
             type="text"
             placeholder="Search movies..."
@@ -85,6 +91,6 @@ export default function Navbar() {
         </div>
 
       </div>
-    </nav>
+    </motion.nav>
   );
 }
