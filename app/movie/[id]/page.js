@@ -13,7 +13,7 @@ export default async function MovieDetail({ params }) {
 
   if (!docSnap.exists()) {
     return (
-      <div className="bg-black text-white min-h-screen px-12 py-12">
+      <div className="bg-black text-white min-h-screen flex items-center justify-center">
         Movie not found.
       </div>
     );
@@ -28,95 +28,113 @@ export default async function MovieDetail({ params }) {
   return (
     <div className="bg-black text-white min-h-screen relative overflow-hidden">
 
+      {/* Track Real View */}
       <ViewTracker movieId={id} />
 
       {/* HERO SECTION */}
-      <section className="relative h-[75vh] flex items-end">
+      <section className="relative h-[70vh] md:h-[80vh] flex items-end">
 
+        {/* Background */}
         <div
           className="absolute inset-0 bg-cover bg-center scale-105"
           style={{ backgroundImage: `url(${movie.bannerImage})` }}
         />
 
-        {/* Dark cinematic overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/40 backdrop-blur-sm" />
+        {/* Cinematic Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/30" />
 
-        {/* Glass info panel */}
-        <div className="relative z-10 w-full px-16 pb-20">
-          <div className="max-w-5xl bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-10 shadow-2xl">
+        {/* Info Glass Panel */}
+        <div className="relative z-10 w-full px-6 md:px-16 pb-16 md:pb-24">
+          <div className="max-w-5xl bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-12 shadow-[0_0_80px_rgba(0,0,0,0.6)]">
 
-            <h1 className="text-5xl md:text-6xl font-bold mb-4 tracking-tight">
+            <h1 className="text-3xl md:text-6xl font-bold mb-4 tracking-tight leading-tight">
               {movie.title}
             </h1>
 
-            <p className="text-gray-300 text-lg mb-6">
+            <p className="text-gray-300 text-base md:text-lg mb-6">
               {movie.tagline}
             </p>
 
-            {/* Metadata Row */}
-            <div className="flex flex-wrap gap-6 text-sm text-gray-400">
-              <span>{movie.genre}</span>
-              <span>{movie.releaseDate}</span>
+            {/* Metadata */}
+            <div className="flex flex-wrap gap-4 md:gap-6 text-sm text-gray-400">
+              <span>{movie.genre || "—"}</span>
+              <span>{movie.releaseDate || "—"}</span>
               <span>{totalViews.toLocaleString()} views</span>
             </div>
 
           </div>
         </div>
-
       </section>
 
       {/* MAIN CONTENT */}
-      <section className="px-16 py-20 space-y-16">
+      <section className="px-6 md:px-16 py-16 md:py-24 space-y-16">
 
-        {/* Video Player */}
-        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+        {/* Video Player Premium Box */}
+        <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.7)]">
+
           <div className="aspect-video">
             <iframe
               src={movie.embedLink}
-              className="w-full h-full"
+              className="w-full h-full rounded-3xl"
               allowFullScreen
             />
           </div>
+
         </div>
 
-        {/* Rating Section */}
-        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-8 shadow-xl">
+        {/* Rating */}
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-10 shadow-xl">
           <RatingSection movieId={id} />
         </div>
 
-        {/* Two Column Info */}
+        {/* Info Grid */}
         <div className="grid md:grid-cols-3 gap-12">
 
-          <div className="md:col-span-2 bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-10 shadow-xl">
-            <h2 className="text-2xl font-semibold mb-6">
+          {/* Description */}
+          <div className="md:col-span-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-12 shadow-xl">
+
+            <h2 className="text-2xl font-semibold mb-8">
               About the Movie
             </h2>
-            <p className="text-gray-300 leading-relaxed text-lg">
-              {movie.description}
-            </p>
+
+            <div className="text-gray-300 leading-relaxed text-base md:text-lg space-y-5">
+              {movie.description?.split("\n").map((line, index) => (
+                <p key={index}>{line}</p>
+              ))}
+            </div>
+
           </div>
 
-          <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-8 shadow-xl space-y-4">
+          {/* Side Panel */}
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-xl space-y-6">
+
             <div>
-              <p className="text-sm text-gray-400">Genre</p>
-              <p className="font-medium">{movie.genre}</p>
+              <p className="text-sm text-gray-400 mb-1">Genre</p>
+              <p className="font-medium text-lg">
+                {movie.genre || "Not Available"}
+              </p>
             </div>
 
             <div>
-              <p className="text-sm text-gray-400">Release Date</p>
-              <p className="font-medium">{movie.releaseDate}</p>
+              <p className="text-sm text-gray-400 mb-1">Release Date</p>
+              <p className="font-medium text-lg">
+                {movie.releaseDate || "Not Available"}
+              </p>
             </div>
 
             <div>
-              <p className="text-sm text-gray-400">Director</p>
-              <p className="font-medium">{movie.directorBio}</p>
+              <p className="text-sm text-gray-400 mb-1">Director</p>
+              <p className="font-medium text-lg">
+                {movie.director || movie.directorBio || "Not Available"}
+              </p>
             </div>
+
           </div>
 
         </div>
 
         {/* Comments */}
-        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-10 shadow-xl">
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-12 shadow-xl">
           <CommentSection movieId={id} />
         </div>
 
