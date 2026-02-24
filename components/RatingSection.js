@@ -18,6 +18,7 @@ export default function RatingSection({ movieId }) {
   const [average, setAverage] = useState(0);
   const [count, setCount] = useState(0);
   const [hover, setHover] = useState(0);
+  const [userRating, setUserRating] = useState(0);
   const [userRatingDocId, setUserRatingDocId] = useState(null);
 
   const getDeviceId = () => {
@@ -50,29 +51,32 @@ export default function RatingSection({ movieId }) {
           ? ratings.reduce((a, b) => a + b.rating, 0) / realCount
           : 0;
 
-      // Check if this device already rated
       const existing = ratings.find(
         (r) => r.deviceId === deviceId
       );
 
       if (existing) {
         setUserRatingDocId(existing.id);
+        setUserRating(existing.rating);
       } else {
         setUserRatingDocId(null);
+        setUserRating(0);
       }
 
-      // Fetch boost values
       const movieDoc = await getDoc(doc(db, "movies", movieId));
       const movieData = movieDoc.data();
 
       const ratingBoost = movieData?.ratingBoost || 0;
       const ratingCountBoost = movieData?.ratingCountBoost || 0;
 
-      const finalAverage = realAverage + ratingBoost;
-      const finalCount = realCount + ratingCountBoost;
+      const weightedAverage =
+        (realAverage * realCount + ratingBoost * ratingCountBoost) /
+        (realCount + ratingCountBoost || 1);
 
-      setAverage(Number(finalAverage.toFixed(1)));
-      setCount(finalCount);
+      const safeAverage = Math.min(5, weightedAverage);
+
+      setAverage(Number(safeAverage.toFixed(1)));
+      setCount(realCount + ratingCountBoost);
     });
 
     return () => unsubscribe();
@@ -99,6 +103,8 @@ export default function RatingSection({ movieId }) {
     }
   };
 
+  const displayValue = hover || userRating || Math.round(average);
+
   return (
     <div className="mt-12 mb-10">
       <h3 className="text-xl font-semibold mb-4">
@@ -114,8 +120,8 @@ export default function RatingSection({ movieId }) {
               onMouseEnter={() => setHover(star)}
               onMouseLeave={() => setHover(0)}
               className={`text-4xl cursor-pointer transition ${
-                star <= (hover || average)
-                  ? "text-yellow-400 drop-shadow-[0_0_10px_rgba(255,215,0,0.8)]"
+                star <= displayValue
+                  ? "text-yellow-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.7)]"
                   : "text-gray-600"
               }`}
             >
