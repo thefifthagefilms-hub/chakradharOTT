@@ -8,6 +8,8 @@ import { useRouter } from "next/navigation";
 export default function CreateMovie() {
   const router = useRouter();
 
+  const [loading, setLoading] = useState(false);
+
   const [form, setForm] = useState({
     title: "",
     tagline: "",
@@ -17,7 +19,7 @@ export default function CreateMovie() {
     bannerImage: "",
     genre: "",
     releaseDate: "",
-    director: "",   // NEW FIELD
+    director: "",
     featured: false,
     trending: false,
   });
@@ -58,6 +60,7 @@ export default function CreateMovie() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
     const finalEmbed = convertToEmbed(form.embedLink);
 
@@ -67,86 +70,114 @@ export default function CreateMovie() {
       createdAt: Date.now(),
     });
 
+    setLoading(false);
     alert("Movie uploaded successfully");
     router.push("/admin/movies");
   };
 
   return (
-    <div>
-      <h1 className="text-4xl font-bold mb-10">
-        Upload New Movie
-      </h1>
+    <div className="space-y-10 max-w-4xl mx-auto">
 
-      <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
+      {/* HEADER */}
+      <div>
+        <h1 className="text-2xl md:text-4xl font-bold tracking-tight">
+          Upload New Movie
+        </h1>
+        <p className="text-gray-400 mt-2 text-sm md:text-base">
+          Add new movie details to your platform
+        </p>
+      </div>
 
-        <input
-          type="text"
-          placeholder="Title"
-          className="w-full p-3 bg-zinc-800 rounded"
-          required
-          onChange={(e) => handleChange("title", e.target.value)}
-        />
+      {/* FORM */}
+      <form
+        onSubmit={handleSubmit}
+        className="bg-zinc-900/80 backdrop-blur-lg border border-white/10 rounded-2xl p-6 md:p-10 shadow-xl space-y-6"
+      >
 
-        <input
-          type="text"
-          placeholder="Tagline"
-          className="w-full p-3 bg-zinc-800 rounded"
-          onChange={(e) => handleChange("tagline", e.target.value)}
-        />
+        {/* BASIC INFO */}
+        <div className="space-y-5">
 
-        {/* NEW DIRECTOR FIELD */}
-        <input
-          type="text"
-          placeholder="Director Name"
-          className="w-full p-3 bg-zinc-800 rounded"
-          onChange={(e) => handleChange("director", e.target.value)}
-        />
+          <input
+            type="text"
+            placeholder="Title"
+            required
+            className="w-full p-3 bg-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+            onChange={(e) => handleChange("title", e.target.value)}
+          />
 
-        <textarea
-          placeholder="Description"
-          className="w-full p-3 bg-zinc-800 rounded"
-          rows="4"
-          onChange={(e) => handleChange("description", e.target.value)}
-        />
+          <input
+            type="text"
+            placeholder="Tagline"
+            className="w-full p-3 bg-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+            onChange={(e) => handleChange("tagline", e.target.value)}
+          />
 
-        <input
-          type="text"
-          placeholder="Paste ANY YouTube Link"
-          className="w-full p-3 bg-zinc-800 rounded"
-          required
-          onChange={(e) => handleChange("embedLink", e.target.value)}
-        />
+          <input
+            type="text"
+            placeholder="Director Name"
+            className="w-full p-3 bg-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+            onChange={(e) => handleChange("director", e.target.value)}
+          />
 
-        <input
-          type="text"
-          placeholder="Poster Image URL"
-          className="w-full p-3 bg-zinc-800 rounded"
-          required
-          onChange={(e) => handleChange("posterImage", e.target.value)}
-        />
+          <textarea
+            placeholder="Description"
+            rows="4"
+            className="w-full p-3 bg-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+            onChange={(e) => handleChange("description", e.target.value)}
+          />
 
-        <input
-          type="text"
-          placeholder="Banner Image URL"
-          className="w-full p-3 bg-zinc-800 rounded"
-          required
-          onChange={(e) => handleChange("bannerImage", e.target.value)}
-        />
+        </div>
 
-        <input
-          type="text"
-          placeholder="Genre"
-          className="w-full p-3 bg-zinc-800 rounded"
-          onChange={(e) => handleChange("genre", e.target.value)}
-        />
+        {/* MEDIA LINKS */}
+        <div className="space-y-5">
 
-        <input
-          type="date"
-          className="w-full p-3 bg-zinc-800 rounded"
-          onChange={(e) => handleChange("releaseDate", e.target.value)}
-        />
+          <input
+            type="text"
+            placeholder="Paste ANY YouTube Link"
+            required
+            className="w-full p-3 bg-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+            onChange={(e) => handleChange("embedLink", e.target.value)}
+          />
 
-        <div className="flex gap-6">
+          <input
+            type="text"
+            placeholder="Poster Image URL"
+            required
+            className="w-full p-3 bg-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+            onChange={(e) => handleChange("posterImage", e.target.value)}
+          />
+
+          <input
+            type="text"
+            placeholder="Banner Image URL"
+            required
+            className="w-full p-3 bg-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+            onChange={(e) => handleChange("bannerImage", e.target.value)}
+          />
+
+        </div>
+
+        {/* META INFO */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+          <input
+            type="text"
+            placeholder="Genre"
+            className="w-full p-3 bg-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+            onChange={(e) => handleChange("genre", e.target.value)}
+          />
+
+          <input
+            type="date"
+            className="w-full p-3 bg-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+            onChange={(e) => handleChange("releaseDate", e.target.value)}
+          />
+
+        </div>
+
+        {/* FLAGS */}
+        <div className="flex flex-wrap gap-6 text-sm">
+
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -166,16 +197,20 @@ export default function CreateMovie() {
             />
             Trending
           </label>
+
         </div>
 
+        {/* SUBMIT */}
         <button
           type="submit"
-          className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded transition"
+          disabled={loading}
+          className="w-full md:w-auto bg-green-600 hover:bg-green-700 px-8 py-3 rounded-lg transition disabled:opacity-60"
         >
-          Upload Movie
+          {loading ? "Uploading..." : "Upload Movie"}
         </button>
 
       </form>
+
     </div>
   );
 }

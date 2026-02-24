@@ -13,7 +13,9 @@ export default function EditMovie({ params }) {
   const router = useRouter();
   const [movie, setMovie] = useState(null);
   const [movieId, setMovieId] = useState(null);
+  const [loading, setLoading] = useState(false);
 
+  /* ---------- Resolve Params ---------- */
   useEffect(() => {
     const resolveParams = async () => {
       const resolved = await params;
@@ -22,6 +24,7 @@ export default function EditMovie({ params }) {
     resolveParams();
   }, [params]);
 
+  /* ---------- Fetch Movie ---------- */
   useEffect(() => {
     if (!movieId) return;
 
@@ -72,6 +75,8 @@ export default function EditMovie({ params }) {
   };
 
   const handleSave = async () => {
+    setLoading(true);
+
     const finalEmbed = convertToEmbed(movie.embedLink);
 
     await updateDoc(doc(db, "movies", movieId), {
@@ -80,86 +85,124 @@ export default function EditMovie({ params }) {
       director: movie.director || "",
     });
 
+    setLoading(false);
     alert("Movie updated successfully");
     router.push("/admin/movies");
   };
 
-  if (!movie) return null;
+  if (!movie) {
+    return (
+      <div className="text-gray-400 text-sm">
+        Loading movie data...
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <h1 className="text-4xl font-bold mb-10">
-        Edit Movie
-      </h1>
+    <div className="space-y-10 max-w-4xl mx-auto">
 
-      <div className="space-y-6 max-w-2xl">
+      {/* HEADER */}
+      <div>
+        <h1 className="text-2xl md:text-4xl font-bold tracking-tight">
+          Edit Movie
+        </h1>
+        <p className="text-gray-400 mt-2 text-sm md:text-base">
+          Update movie details
+        </p>
+      </div>
 
-        <input
-          type="text"
-          value={movie.title || ""}
-          onChange={(e) => handleChange("title", e.target.value)}
-          className="w-full p-3 bg-zinc-800 rounded"
-        />
+      {/* FORM CONTAINER */}
+      <div className="bg-zinc-900/80 backdrop-blur-lg border border-white/10 rounded-2xl p-6 md:p-10 shadow-xl space-y-6">
 
-        <input
-          type="text"
-          value={movie.tagline || ""}
-          onChange={(e) => handleChange("tagline", e.target.value)}
-          className="w-full p-3 bg-zinc-800 rounded"
-        />
+        {/* BASIC INFO */}
+        <div className="space-y-5">
 
-        {/* NEW DIRECTOR FIELD */}
-        <input
-          type="text"
-          placeholder="Director Name"
-          value={movie.director || ""}
-          onChange={(e) => handleChange("director", e.target.value)}
-          className="w-full p-3 bg-zinc-800 rounded"
-        />
+          <input
+            type="text"
+            value={movie.title || ""}
+            onChange={(e) => handleChange("title", e.target.value)}
+            className="w-full p-3 bg-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+            placeholder="Title"
+          />
 
-        <textarea
-          rows="4"
-          value={movie.description || ""}
-          onChange={(e) => handleChange("description", e.target.value)}
-          className="w-full p-3 bg-zinc-800 rounded"
-        />
+          <input
+            type="text"
+            value={movie.tagline || ""}
+            onChange={(e) => handleChange("tagline", e.target.value)}
+            className="w-full p-3 bg-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+            placeholder="Tagline"
+          />
 
-        <input
-          type="text"
-          value={movie.embedLink || ""}
-          onChange={(e) => handleChange("embedLink", e.target.value)}
-          className="w-full p-3 bg-zinc-800 rounded"
-        />
+          <input
+            type="text"
+            value={movie.director || ""}
+            onChange={(e) => handleChange("director", e.target.value)}
+            className="w-full p-3 bg-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+            placeholder="Director Name"
+          />
 
-        <input
-          type="text"
-          value={movie.posterImage || ""}
-          onChange={(e) => handleChange("posterImage", e.target.value)}
-          className="w-full p-3 bg-zinc-800 rounded"
-        />
+          <textarea
+            rows="4"
+            value={movie.description || ""}
+            onChange={(e) => handleChange("description", e.target.value)}
+            className="w-full p-3 bg-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+            placeholder="Description"
+          />
 
-        <input
-          type="text"
-          value={movie.bannerImage || ""}
-          onChange={(e) => handleChange("bannerImage", e.target.value)}
-          className="w-full p-3 bg-zinc-800 rounded"
-        />
+        </div>
 
-        <input
-          type="text"
-          value={movie.genre || ""}
-          onChange={(e) => handleChange("genre", e.target.value)}
-          className="w-full p-3 bg-zinc-800 rounded"
-        />
+        {/* MEDIA LINKS */}
+        <div className="space-y-5">
 
-        <input
-          type="date"
-          value={movie.releaseDate || ""}
-          onChange={(e) => handleChange("releaseDate", e.target.value)}
-          className="w-full p-3 bg-zinc-800 rounded"
-        />
+          <input
+            type="text"
+            value={movie.embedLink || ""}
+            onChange={(e) => handleChange("embedLink", e.target.value)}
+            className="w-full p-3 bg-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+            placeholder="YouTube Link"
+          />
 
-        <div className="flex gap-6">
+          <input
+            type="text"
+            value={movie.posterImage || ""}
+            onChange={(e) => handleChange("posterImage", e.target.value)}
+            className="w-full p-3 bg-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+            placeholder="Poster Image URL"
+          />
+
+          <input
+            type="text"
+            value={movie.bannerImage || ""}
+            onChange={(e) => handleChange("bannerImage", e.target.value)}
+            className="w-full p-3 bg-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+            placeholder="Banner Image URL"
+          />
+
+        </div>
+
+        {/* META GRID */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+          <input
+            type="text"
+            value={movie.genre || ""}
+            onChange={(e) => handleChange("genre", e.target.value)}
+            className="w-full p-3 bg-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+            placeholder="Genre"
+          />
+
+          <input
+            type="date"
+            value={movie.releaseDate || ""}
+            onChange={(e) => handleChange("releaseDate", e.target.value)}
+            className="w-full p-3 bg-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+          />
+
+        </div>
+
+        {/* FLAGS */}
+        <div className="flex flex-wrap gap-6 text-sm">
+
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -181,16 +224,20 @@ export default function EditMovie({ params }) {
             />
             Trending
           </label>
+
         </div>
 
+        {/* SAVE BUTTON */}
         <button
           onClick={handleSave}
-          className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded transition"
+          disabled={loading}
+          className="w-full md:w-auto bg-green-600 hover:bg-green-700 px-8 py-3 rounded-lg transition disabled:opacity-60"
         >
-          Save Changes
+          {loading ? "Saving..." : "Save Changes"}
         </button>
 
       </div>
+
     </div>
   );
 }
