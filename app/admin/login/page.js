@@ -12,6 +12,7 @@ export default function AdminLogin() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const allowedEmails = [
     "thefifthagefilms@gmail.com",
@@ -27,10 +28,20 @@ export default function AdminLogin() {
     }
 
     try {
+      setLoading(true);
+
       await signInWithEmailAndPassword(auth, email, password);
+
+      // 🔐 Create secure admin session cookie (required by AdminLayout)
+      document.cookie =
+        "admin-session=verified; path=/; SameSite=Lax";
+
       router.push("/admin");
+
     } catch (error) {
       alert("Invalid credentials.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -83,9 +94,10 @@ export default function AdminLogin() {
 
         <button
           type="submit"
-          className="w-full bg-red-600 hover:bg-red-700 py-3 rounded mb-4"
+          disabled={loading}
+          className="w-full bg-red-600 hover:bg-red-700 py-3 rounded mb-4 disabled:opacity-60"
         >
-          Login
+          {loading ? "Logging in..." : "Login"}
         </button>
 
         <button
