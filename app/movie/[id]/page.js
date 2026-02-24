@@ -3,7 +3,6 @@ import { doc, getDoc } from "firebase/firestore";
 import CommentSection from "../../../components/CommentSection";
 import RatingSection from "../../../components/RatingSection";
 import ViewTracker from "../../../components/ViewTracker";
-import MovieAnimatedWrapper from "../../../components/MovieAnimatedWrapper";
 
 export default async function MovieDetail({ params }) {
   const resolvedParams = await params;
@@ -29,31 +28,30 @@ export default async function MovieDetail({ params }) {
   return (
     <div className="bg-black text-white min-h-screen relative overflow-hidden">
 
-      {/* Track Real View */}
       <ViewTracker movieId={id} />
 
       {/* HERO SECTION */}
-      <section className="relative h-[70vh] md:h-[80vh] flex items-end">
+      <section className="relative h-[60vh] md:h-[75vh] flex items-end">
 
         <div
           className="absolute inset-0 bg-cover bg-center scale-105"
           style={{ backgroundImage: `url(${movie.bannerImage})` }}
         />
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
 
-        <div className="relative z-10 w-full px-6 md:px-16 pb-16 md:pb-24">
-          <div className="max-w-5xl bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-12 shadow-[0_0_80px_rgba(0,0,0,0.6)]">
+        <div className="relative z-10 w-full px-6 md:px-16 pb-10 md:pb-20">
+          <div className="max-w-5xl bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 md:p-10 shadow-[0_0_80px_rgba(0,0,0,0.6)]">
 
-            <h1 className="text-3xl md:text-6xl font-bold mb-4 tracking-tight leading-tight">
+            <h1 className="text-3xl md:text-6xl font-bold mb-4 tracking-tight">
               {movie.title}
             </h1>
 
-            <p className="text-gray-300 text-base md:text-lg mb-6">
+            <p className="text-gray-300 text-sm md:text-lg mb-4">
               {movie.tagline}
             </p>
 
-            <div className="flex flex-wrap gap-4 md:gap-6 text-sm text-gray-400">
+            <div className="flex flex-wrap gap-4 text-xs md:text-sm text-gray-400">
               <span>{movie.genre || "—"}</span>
               <span>{movie.releaseDate || "—"}</span>
               <span>{totalViews.toLocaleString()} views</span>
@@ -64,82 +62,86 @@ export default async function MovieDetail({ params }) {
       </section>
 
       {/* MAIN CONTENT */}
-      <section className="px-6 md:px-16 py-16 md:py-24 space-y-16">
+      <section className="px-4 md:px-16 py-12 md:py-20 space-y-14">
 
-        {/* Video Player */}
-        <MovieAnimatedWrapper>
-          <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.7)]">
-            <div className="aspect-video">
-              <iframe
-                src={movie.embedLink}
-                className="w-full h-full rounded-3xl"
-                allowFullScreen
-              />
-            </div>
+        {/* PREMIUM VIDEO CONTAINER */}
+        <div className="relative rounded-3xl overflow-hidden border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.03] backdrop-blur-2xl shadow-[0_0_80px_rgba(0,0,0,0.7)]">
+
+          <div className="absolute inset-0 rounded-3xl border border-white/10 pointer-events-none" />
+
+          <div className="aspect-video">
+            <iframe
+              src={movie.embedLink}
+              className="w-full h-full rounded-3xl"
+              allowFullScreen
+            />
           </div>
-        </MovieAnimatedWrapper>
 
-        {/* Rating Section */}
-        <MovieAnimatedWrapper delay={0.1}>
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-10 shadow-xl">
-            <RatingSection movieId={id} />
-          </div>
-        </MovieAnimatedWrapper>
+        </div>
 
-        {/* Info Grid */}
-        <MovieAnimatedWrapper delay={0.2}>
-          <div className="grid md:grid-cols-3 gap-12">
+        {/* RATING */}
+        <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-xl">
+          <RatingSection movieId={id} />
+        </div>
 
-            {/* Description */}
-            <div className="md:col-span-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-12 shadow-xl">
+        {/* INFO GRID */}
+        <div className="grid lg:grid-cols-3 gap-10">
 
-              <h2 className="text-2xl font-semibold mb-8">
-                About the Movie
-              </h2>
+          {/* DESCRIPTION (COLLAPSIBLE STYLE) */}
+          <div className="lg:col-span-2 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 md:p-10 shadow-xl">
 
-              <div className="text-gray-300 leading-relaxed text-base md:text-lg space-y-5">
-                {movie.description?.split("\n").map((line, index) => (
-                  <p key={index}>{line}</p>
-                ))}
-              </div>
+            <h2 className="text-xl md:text-2xl font-semibold mb-6">
+              About the Movie
+            </h2>
 
-            </div>
-
-            {/* Side Panel */}
-            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-xl space-y-6">
-
-              <div>
-                <p className="text-sm text-gray-400 mb-1">Genre</p>
-                <p className="font-medium text-lg">
-                  {movie.genre || "Not Available"}
+            <div className="text-gray-300 text-sm md:text-base leading-relaxed max-h-[250px] overflow-y-auto pr-2">
+              {movie.description?.split("\n").map((line, index) => (
+                <p key={index} className="mb-4">
+                  {line}
                 </p>
-              </div>
-
-              <div>
-                <p className="text-sm text-gray-400 mb-1">Release Date</p>
-                <p className="font-medium text-lg">
-                  {movie.releaseDate || "Not Available"}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-sm text-gray-400 mb-1">Director</p>
-                <p className="font-medium text-lg">
-                  {movie.director || movie.directorBio || "Not Available"}
-                </p>
-              </div>
-
+              ))}
             </div>
 
           </div>
-        </MovieAnimatedWrapper>
 
-        {/* Comments */}
-        <MovieAnimatedWrapper delay={0.3}>
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-12 shadow-xl">
-            <CommentSection movieId={id} />
+          {/* SIDE INFO */}
+          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-xl space-y-6">
+
+            <div>
+              <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">
+                Genre
+              </p>
+              <p className="font-medium text-lg">
+                {movie.genre || "Not Available"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">
+                Release Date
+              </p>
+              <p className="font-medium text-lg">
+                {movie.releaseDate || "Not Available"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">
+                Director
+              </p>
+              <p className="font-medium text-lg">
+                {movie.director || movie.directorBio || "Not Available"}
+              </p>
+            </div>
+
           </div>
-        </MovieAnimatedWrapper>
+
+        </div>
+
+        {/* COMMENTS */}
+        <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 md:p-10 shadow-xl">
+          <CommentSection movieId={id} />
+        </div>
 
       </section>
 
