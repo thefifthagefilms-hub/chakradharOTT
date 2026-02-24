@@ -3,6 +3,7 @@ import { doc, getDoc } from "firebase/firestore";
 import CommentSection from "../../../components/CommentSection";
 import RatingSection from "../../../components/RatingSection";
 import ViewTracker from "../../../components/ViewTracker";
+import MovieAnimatedWrapper from "../../../components/MovieAnimatedWrapper";
 
 export default async function MovieDetail({ params }) {
   const resolvedParams = await params;
@@ -34,16 +35,13 @@ export default async function MovieDetail({ params }) {
       {/* HERO SECTION */}
       <section className="relative h-[70vh] md:h-[80vh] flex items-end">
 
-        {/* Background */}
         <div
           className="absolute inset-0 bg-cover bg-center scale-105"
           style={{ backgroundImage: `url(${movie.bannerImage})` }}
         />
 
-        {/* Cinematic Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/30" />
 
-        {/* Info Glass Panel */}
         <div className="relative z-10 w-full px-6 md:px-16 pb-16 md:pb-24">
           <div className="max-w-5xl bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-12 shadow-[0_0_80px_rgba(0,0,0,0.6)]">
 
@@ -55,7 +53,6 @@ export default async function MovieDetail({ params }) {
               {movie.tagline}
             </p>
 
-            {/* Metadata */}
             <div className="flex flex-wrap gap-4 md:gap-6 text-sm text-gray-400">
               <span>{movie.genre || "—"}</span>
               <span>{movie.releaseDate || "—"}</span>
@@ -69,74 +66,80 @@ export default async function MovieDetail({ params }) {
       {/* MAIN CONTENT */}
       <section className="px-6 md:px-16 py-16 md:py-24 space-y-16">
 
-        {/* Video Player Premium Box */}
-        <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.7)]">
-
-          <div className="aspect-video">
-            <iframe
-              src={movie.embedLink}
-              className="w-full h-full rounded-3xl"
-              allowFullScreen
-            />
+        {/* Video Player */}
+        <MovieAnimatedWrapper>
+          <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.7)]">
+            <div className="aspect-video">
+              <iframe
+                src={movie.embedLink}
+                className="w-full h-full rounded-3xl"
+                allowFullScreen
+              />
+            </div>
           </div>
+        </MovieAnimatedWrapper>
 
-        </div>
-
-        {/* Rating */}
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-10 shadow-xl">
-          <RatingSection movieId={id} />
-        </div>
+        {/* Rating Section */}
+        <MovieAnimatedWrapper delay={0.1}>
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-10 shadow-xl">
+            <RatingSection movieId={id} />
+          </div>
+        </MovieAnimatedWrapper>
 
         {/* Info Grid */}
-        <div className="grid md:grid-cols-3 gap-12">
+        <MovieAnimatedWrapper delay={0.2}>
+          <div className="grid md:grid-cols-3 gap-12">
 
-          {/* Description */}
-          <div className="md:col-span-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-12 shadow-xl">
+            {/* Description */}
+            <div className="md:col-span-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-12 shadow-xl">
 
-            <h2 className="text-2xl font-semibold mb-8">
-              About the Movie
-            </h2>
+              <h2 className="text-2xl font-semibold mb-8">
+                About the Movie
+              </h2>
 
-            <div className="text-gray-300 leading-relaxed text-base md:text-lg space-y-5">
-              {movie.description?.split("\n").map((line, index) => (
-                <p key={index}>{line}</p>
-              ))}
+              <div className="text-gray-300 leading-relaxed text-base md:text-lg space-y-5">
+                {movie.description?.split("\n").map((line, index) => (
+                  <p key={index}>{line}</p>
+                ))}
+              </div>
+
+            </div>
+
+            {/* Side Panel */}
+            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-xl space-y-6">
+
+              <div>
+                <p className="text-sm text-gray-400 mb-1">Genre</p>
+                <p className="font-medium text-lg">
+                  {movie.genre || "Not Available"}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-400 mb-1">Release Date</p>
+                <p className="font-medium text-lg">
+                  {movie.releaseDate || "Not Available"}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-400 mb-1">Director</p>
+                <p className="font-medium text-lg">
+                  {movie.director || movie.directorBio || "Not Available"}
+                </p>
+              </div>
+
             </div>
 
           </div>
-
-          {/* Side Panel */}
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-xl space-y-6">
-
-            <div>
-              <p className="text-sm text-gray-400 mb-1">Genre</p>
-              <p className="font-medium text-lg">
-                {movie.genre || "Not Available"}
-              </p>
-            </div>
-
-            <div>
-              <p className="text-sm text-gray-400 mb-1">Release Date</p>
-              <p className="font-medium text-lg">
-                {movie.releaseDate || "Not Available"}
-              </p>
-            </div>
-
-            <div>
-              <p className="text-sm text-gray-400 mb-1">Director</p>
-              <p className="font-medium text-lg">
-                {movie.director || movie.directorBio || "Not Available"}
-              </p>
-            </div>
-
-          </div>
-
-        </div>
+        </MovieAnimatedWrapper>
 
         {/* Comments */}
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-12 shadow-xl">
-          <CommentSection movieId={id} />
-        </div>
+        <MovieAnimatedWrapper delay={0.3}>
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-12 shadow-xl">
+            <CommentSection movieId={id} />
+          </div>
+        </MovieAnimatedWrapper>
 
       </section>
 
