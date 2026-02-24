@@ -2,104 +2,89 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { db } from "../firebase";
+import { collection, getDocs } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [movies, setMovies] = useState([]);
 
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
     };
-
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const navLinks = [
-    { name: "Home", href: "/" },
-    { name: "Movies", href: "/movies" },
-    { name: "Admin", href: "/admin" },
-  ];
+  useEffect(() => {
+    const fetchMovies = async () => {
+      const snapshot = await getDocs(collection(db, "movies"));
+      setMovies(snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })));
+    };
+    fetchMovies();
+  }, []);
 
-  const handleNavClick = () => {
-    setMenuOpen(false);
-  };
+  const filtered =
+    search.length > 0
+      ? movies.filter((m) =>
+          m.title.toLowerCase().includes(search.toLowerCase())
+        )
+      : [];
 
   return (
-    <motion.nav
-      initial={{ y: -80, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.6 }}
-      className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${
-        scrolled
-          ? "bg-black/70 backdrop-blur-2xl border-b border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.4)]"
-          : "bg-gradient-to-b from-black/80 to-transparent"
-      }`}
-    >
+    <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${
+      scrolled
+        ? "bg-black/70 backdrop-blur-2xl border-b border-white/10"
+        : "bg-gradient-to-b from-black/80 to-transparent"
+    }`}>
+
       <div className="flex items-center justify-between px-6 md:px-14 py-4">
 
-        {/* Logo */}
-        <Link
-          href="/"
-          onClick={handleNavClick}
-          className="text-2xl md:text-3xl font-bold tracking-tight text-white"
-        >
+        <Link href="/" className="text-2xl md:text-3xl font-bold text-white">
           Chakradhar <span className="text-red-600">OTT</span>
         </Link>
 
-        {/* Desktop */}
-        <div className="hidden md:flex items-center gap-12 text-sm font-medium text-gray-300">
-          {navLinks.map((link) => (
-            <Link
-              key={link.name}
-              href={link.href}
-              onClick={handleNavClick}
-              className="relative group"
-            >
-              <span className="hover:text-white transition">
-                {link.name}
-              </span>
-              <span className="absolute left-0 -bottom-1 w-0 h-[2px] bg-red-600 transition-all duration-300 group-hover:w-full" />
-            </Link>
-          ))}
-        </div>
+        {/* Desktop Search */}
+        <div className="hidden md:block relative w-72">
+          <input
+            type="text"
+            placeholder="Search movies..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-white/5 backdrop-blur-lg border border-white/10 rounded-full px-4 py-2 text-sm text-white focus:outline-none focus:border-red-600"
+          />
 
-        {/* Mobile Button */}
-        <div className="md:hidden">
-          <button
-            onClick={() => setMenuOpen((prev) => !prev)}
-            className="text-white text-2xl"
-          >
-            {menuOpen ? "✕" : "☰"}
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Dropdown */}
-      <AnimatePresence>
-        {menuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.25 }}
-            className="md:hidden bg-black/95 backdrop-blur-2xl border-t border-white/10 px-6 py-8 space-y-8 text-gray-300 text-sm font-medium"
-          >
-            {navLinks.map((link) => (
-              <Link
-                key={link.name}
-                href={link.href}
-                onClick={handleNavClick}
-                className="block hover:text-white transition"
+          <AnimatePresence>
+            {filtered.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="absolute top-12 w-full bg-black/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl max-h-64 overflow-y-auto"
               >
-                {link.name}
-              </Link>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.nav>
+                {filtered.slice(0, 6).map((movie) => (
+                  <Link
+                    key={movie.id}
+                    href={`/movie/${movie.id}`}
+                    onClick={() => setSearch("")}
+                    className="block px-4 py-3 text-sm hover:bg-white/10 transition"
+                  >
+                    {movie.title}
+                  </Link>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+      </div>
+    </nav>
   );
 }
