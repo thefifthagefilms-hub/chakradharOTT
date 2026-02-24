@@ -32,6 +32,9 @@ export default function AdminLogin() {
 
       await signInWithEmailAndPassword(auth, email, password);
 
+       document.cookie =
+      "admin-session=verified; path=/; max-age=1800; SameSite=Strict";
+
 
       router.push("/admin");
 
