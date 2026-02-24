@@ -14,17 +14,14 @@ export default function EditMovie({ params }) {
   const [movie, setMovie] = useState(null);
   const [movieId, setMovieId] = useState(null);
 
-  // Resolve params Promise (Next.js 16)
   useEffect(() => {
     const resolveParams = async () => {
       const resolved = await params;
       setMovieId(resolved.id);
     };
-
     resolveParams();
   }, [params]);
 
-  // Fetch movie after id resolved
   useEffect(() => {
     if (!movieId) return;
 
@@ -44,9 +41,7 @@ export default function EditMovie({ params }) {
     if (!url) return "";
 
     try {
-      if (url.includes("/embed/")) {
-        return url;
-      }
+      if (url.includes("/embed/")) return url;
 
       if (url.includes("watch?v=")) {
         const videoId = url.split("watch?v=")[1].split("&")[0];
@@ -82,6 +77,7 @@ export default function EditMovie({ params }) {
     await updateDoc(doc(db, "movies", movieId), {
       ...movie,
       embedLink: finalEmbed,
+      director: movie.director || "",
     });
 
     alert("Movie updated successfully");
@@ -109,6 +105,15 @@ export default function EditMovie({ params }) {
           type="text"
           value={movie.tagline || ""}
           onChange={(e) => handleChange("tagline", e.target.value)}
+          className="w-full p-3 bg-zinc-800 rounded"
+        />
+
+        {/* NEW DIRECTOR FIELD */}
+        <input
+          type="text"
+          placeholder="Director Name"
+          value={movie.director || ""}
+          onChange={(e) => handleChange("director", e.target.value)}
           className="w-full p-3 bg-zinc-800 rounded"
         />
 

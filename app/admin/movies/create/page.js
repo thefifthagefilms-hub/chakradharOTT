@@ -17,6 +17,7 @@ export default function CreateMovie() {
     bannerImage: "",
     genre: "",
     releaseDate: "",
+    director: "",   // NEW FIELD
     featured: false,
     trending: false,
   });
@@ -25,24 +26,18 @@ export default function CreateMovie() {
     if (!url) return "";
 
     try {
-      // Already embed
-      if (url.includes("/embed/")) {
-        return url;
-      }
+      if (url.includes("/embed/")) return url;
 
-      // Watch URL
       if (url.includes("watch?v=")) {
         const videoId = url.split("watch?v=")[1].split("&")[0];
         return `https://www.youtube.com/embed/${videoId}`;
       }
 
-      // Short URL
       if (url.includes("youtu.be/")) {
         const videoId = url.split("youtu.be/")[1].split("?")[0];
         return `https://www.youtube.com/embed/${videoId}`;
       }
 
-      // Shorts URL
       if (url.includes("/shorts/")) {
         const videoId = url.split("/shorts/")[1].split("?")[0];
         return `https://www.youtube.com/embed/${videoId}`;
@@ -69,9 +64,6 @@ export default function CreateMovie() {
     await addDoc(collection(db, "movies"), {
       ...form,
       embedLink: finalEmbed,
-      adminBoost: 0,
-      manualRatingCount: 0,
-      views: 0,
       createdAt: Date.now(),
     });
 
@@ -100,6 +92,14 @@ export default function CreateMovie() {
           placeholder="Tagline"
           className="w-full p-3 bg-zinc-800 rounded"
           onChange={(e) => handleChange("tagline", e.target.value)}
+        />
+
+        {/* NEW DIRECTOR FIELD */}
+        <input
+          type="text"
+          placeholder="Director Name"
+          className="w-full p-3 bg-zinc-800 rounded"
+          onChange={(e) => handleChange("director", e.target.value)}
         />
 
         <textarea
