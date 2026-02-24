@@ -25,25 +25,15 @@ export default function AdminLayout({ children }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user && allowedEmails.includes(user.email)) {
-        // Also check session cookie
-        const hasSession =
-          document.cookie.includes("admin-session=verified");
-
-        if (hasSession) {
-          setAuthorized(true);
-        } else {
-          setAuthorized(false);
-          router.push("/admin/login");
-        }
+        setAuthorized(true);
       } else {
         setAuthorized(false);
       }
-
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [router]);
+  }, []);
 
   /* ---------------- REDIRECT BLOCK ---------------- */
 
@@ -53,16 +43,13 @@ export default function AdminLayout({ children }) {
     }
   }, [loading, authorized, isLoginPage, router]);
 
-  /* ---------------- AUTO SESSION TIMEOUT ---------------- */
+  /* ---------------- AUTO SESSION TIMEOUT (30 min) ---------------- */
 
   useEffect(() => {
     if (!authorized) return;
 
-    const timeout = setTimeout(() => {
-      document.cookie =
-        "admin-session=; Max-Age=0; path=/;";
-
-      signOut(auth);
+    const timeout = setTimeout(async () => {
+      await signOut(auth);
       router.push("/admin/login");
     }, 30 * 60 * 1000); // 30 minutes
 
@@ -72,9 +59,6 @@ export default function AdminLayout({ children }) {
   /* ---------------- LOGOUT ---------------- */
 
   const handleLogout = async () => {
-    document.cookie =
-      "admin-session=; Max-Age=0; path=/;";
-
     await signOut(auth);
     router.push("/admin/login");
   };
@@ -85,12 +69,12 @@ export default function AdminLayout({ children }) {
     return <>{children}</>;
   }
 
-  /* ---------------- LOADING ---------------- */
+  /* ---------------- LOADING SCREEN ---------------- */
 
   if (loading) {
     return (
       <div className="bg-black text-white min-h-screen flex items-center justify-center">
-        Verifying secure session...
+        Verifying authentication...
       </div>
     );
   }
@@ -102,7 +86,6 @@ export default function AdminLayout({ children }) {
   return (
     <div className="flex min-h-screen bg-black text-white">
 
-      {/* SIDEBAR */}
       <aside className="w-64 bg-zinc-900 p-6 flex flex-col justify-between shadow-xl border-r border-white/10">
 
         <div>
@@ -145,7 +128,6 @@ export default function AdminLayout({ children }) {
 
       </aside>
 
-      {/* MAIN */}
       <main className="flex-1 p-12 overflow-y-auto">
         {children}
       </main>

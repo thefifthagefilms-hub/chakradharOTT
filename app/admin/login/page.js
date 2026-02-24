@@ -32,9 +32,6 @@ export default function AdminLogin() {
 
       await signInWithEmailAndPassword(auth, email, password);
 
-      // 🔐 Create secure admin session cookie (required by AdminLayout)
-      document.cookie =
-        "admin-session=verified; path=/; SameSite=Lax";
 
       router.push("/admin");
 
