@@ -2,10 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { db } from "../../firebase";
-import {
-  collection,
-  getDocs,
-} from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -14,6 +11,8 @@ export default function AdminDashboard() {
     comments: 0,
     views: 0,
   });
+
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -32,56 +31,58 @@ export default function AdminDashboard() {
         comments: commentsSnapshot.size,
         views: totalViews,
       });
+
+      setLoading(false);
     };
 
     fetchStats();
   }, []);
 
   return (
-    <div>
-      <h1 className="text-4xl font-bold mb-12">
-        Dashboard Overview
-      </h1>
+    <div className="space-y-10">
 
-      <div className="grid md:grid-cols-4 gap-8">
+      {/* HEADER */}
+      <div>
+        <h1 className="text-2xl md:text-4xl font-bold tracking-tight">
+          Dashboard Overview
+        </h1>
+        <p className="text-gray-400 mt-2 text-sm md:text-base">
+          Real-time platform analytics
+        </p>
+      </div>
 
-        <div className="bg-zinc-900 p-8 rounded-xl shadow-lg">
-          <h2 className="text-gray-400 text-sm mb-2">
-            Total Movies
-          </h2>
-          <p className="text-3xl font-bold">
-            {stats.movies}
-          </p>
-        </div>
+      {/* STATS GRID */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
 
-        <div className="bg-zinc-900 p-8 rounded-xl shadow-lg">
-          <h2 className="text-gray-400 text-sm mb-2">
-            Total Ratings
-          </h2>
-          <p className="text-3xl font-bold">
-            {stats.ratings}
-          </p>
-        </div>
-
-        <div className="bg-zinc-900 p-8 rounded-xl shadow-lg">
-          <h2 className="text-gray-400 text-sm mb-2">
-            Total Comments
-          </h2>
-          <p className="text-3xl font-bold">
-            {stats.comments}
-          </p>
-        </div>
-
-        <div className="bg-zinc-900 p-8 rounded-xl shadow-lg">
-          <h2 className="text-gray-400 text-sm mb-2">
-            Total Views
-          </h2>
-          <p className="text-3xl font-bold">
-            {stats.views}
-          </p>
-        </div>
+        <StatCard title="Total Movies" value={stats.movies} loading={loading} />
+        <StatCard title="Total Ratings" value={stats.ratings} loading={loading} />
+        <StatCard title="Total Comments" value={stats.comments} loading={loading} />
+        <StatCard title="Total Views" value={stats.views} loading={loading} />
 
       </div>
+
+    </div>
+  );
+}
+
+/* ---------- STAT CARD COMPONENT ---------- */
+
+function StatCard({ title, value, loading }) {
+  return (
+    <div className="bg-zinc-900/80 backdrop-blur-lg border border-white/10 p-6 md:p-8 rounded-2xl shadow-lg hover:shadow-2xl transition duration-300">
+
+      <p className="text-gray-400 text-xs md:text-sm mb-3 tracking-wide uppercase">
+        {title}
+      </p>
+
+      {loading ? (
+        <div className="h-8 w-24 bg-zinc-800 rounded animate-pulse" />
+      ) : (
+        <p className="text-2xl md:text-3xl font-bold tracking-tight">
+          {value.toLocaleString()}
+        </p>
+      )}
+
     </div>
   );
 }

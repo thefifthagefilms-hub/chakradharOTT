@@ -13,6 +13,7 @@ import Link from "next/link";
 
 export default function MoviesManagement() {
   const [movies, setMovies] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchMovies = async () => {
@@ -22,6 +23,7 @@ export default function MoviesManagement() {
         ...doc.data(),
       }));
       setMovies(movieList);
+      setLoading(false);
     };
 
     fetchMovies();
@@ -55,64 +57,86 @@ export default function MoviesManagement() {
   };
 
   return (
-    <div>
-      <h1 className="text-4xl font-bold mb-10">
-        Movies Management
-      </h1>
+    <div className="space-y-10">
 
-      <Link
-        href="/admin/movies/create"
-        className="bg-green-600 hover:bg-green-700 px-6 py-2 rounded transition mb-8 inline-block"
-      >
-        + Upload New Movie
-      </Link>
+      {/* HEADER */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+        <h1 className="text-2xl md:text-4xl font-bold tracking-tight">
+          Movies Management
+        </h1>
 
-      <div className="space-y-6 mt-8">
+        <Link
+          href="/admin/movies/create"
+          className="bg-green-600 hover:bg-green-700 px-6 py-2 rounded-lg transition text-sm font-medium"
+        >
+          + Upload New Movie
+        </Link>
+      </div>
+
+      {/* MOVIE LIST */}
+      <div className="space-y-6">
+
+        {loading && (
+          <div className="text-gray-400 text-sm">
+            Loading movies...
+          </div>
+        )}
+
+        {!loading && movies.length === 0 && (
+          <div className="text-gray-500 text-sm">
+            No movies uploaded yet.
+          </div>
+        )}
 
         {movies.map((movie) => (
           <div
             key={movie.id}
-            className="bg-zinc-900 p-6 rounded-xl shadow-lg"
+            className="bg-zinc-900/80 backdrop-blur-md border border-white/10 p-6 rounded-2xl shadow-lg space-y-5"
           >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">
+
+            {/* TITLE + ACTIONS */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+
+              <h2 className="text-lg md:text-xl font-semibold">
                 {movie.title}
               </h2>
 
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-2">
 
                 <Link
                   href={`/admin/movies/edit/${movie.id}`}
-                  className="bg-blue-600 hover:bg-blue-700 px-4 py-1 rounded text-sm"
+                  className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-xs md:text-sm"
                 >
                   Edit
                 </Link>
 
                 <Link
                   href={`/admin/analytics/${movie.id}`}
-                  className="bg-purple-600 hover:bg-purple-700 px-4 py-1 rounded text-sm"
+                  className="bg-purple-600 hover:bg-purple-700 px-3 py-1 rounded text-xs md:text-sm"
                 >
                   Analytics
                 </Link>
 
                 <Link
                   href={`/admin/comments/${movie.id}`}
-                  className="bg-yellow-600 hover:bg-yellow-700 px-4 py-1 rounded text-sm"
+                  className="bg-yellow-600 hover:bg-yellow-700 px-3 py-1 rounded text-xs md:text-sm"
                 >
                   Comments
                 </Link>
 
                 <button
                   onClick={() => handleDelete(movie.id)}
-                  className="bg-red-600 hover:bg-red-700 px-4 py-1 rounded text-sm"
+                  className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-xs md:text-sm"
                 >
                   Delete
                 </button>
 
               </div>
+
             </div>
 
-            <div className="flex gap-6 text-sm">
+            {/* STATUS TOGGLES */}
+            <div className="flex flex-wrap gap-4 text-sm">
 
               <button
                 onClick={() =>
@@ -122,7 +146,7 @@ export default function MoviesManagement() {
                     movie.featured
                   )
                 }
-                className={`px-3 py-1 rounded ${
+                className={`px-4 py-1 rounded-full text-xs font-medium ${
                   movie.featured
                     ? "bg-green-700"
                     : "bg-zinc-700"
@@ -139,7 +163,7 @@ export default function MoviesManagement() {
                     movie.trending
                   )
                 }
-                className={`px-3 py-1 rounded ${
+                className={`px-4 py-1 rounded-full text-xs font-medium ${
                   movie.trending
                     ? "bg-green-700"
                     : "bg-zinc-700"
@@ -154,6 +178,7 @@ export default function MoviesManagement() {
         ))}
 
       </div>
+
     </div>
   );
 }
