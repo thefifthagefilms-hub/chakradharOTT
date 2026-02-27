@@ -1,17 +1,26 @@
+export const runtime = "nodejs";
+
 import { NextResponse } from "next/server";
 import { db } from "@/firebase";
 import { collection, addDoc } from "firebase/firestore";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(req) {
   try {
     const { email } = await req.json();
 
+    if (!email) {
+      return NextResponse.json(
+        { success: false, error: "Email required" },
+        { status: 400 }
+      );
+    }
+
     if (!process.env.RESEND_API_KEY) {
       throw new Error("Missing RESEND_API_KEY");
     }
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -22,18 +31,24 @@ export async function POST(req) {
       expiresAt: Date.now() + 5 * 60 * 1000,
     });
 
-    const result = await resend.emails.send({
+    await resend.emails.send({
       from: "Chakradhar OTT <onboarding@resend.dev>",
       to: email,
       subject: "Admin OTP Verification",
-      html: `<h2>Your OTP is: ${otp}</h2><p>Valid for 5 minutes.</p>`,
+      html: `
+        <div style="font-family: sans-serif;">
+          <h2>Your OTP is: ${otp}</h2>
+          <p>This OTP is valid for 5 minutes.</p>
+        </div>
+      `,
     });
-
-    console.log("Resend result:", result);
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("SEND OTP ERROR:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 }
+    );
   }
 }
