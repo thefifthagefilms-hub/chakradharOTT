@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 export function proxy(request) {
   const { pathname } = request.nextUrl;
 
-  // Allow login and APIs
+  // Allow login page and API routes
   if (
     pathname.startsWith("/admin/login") ||
     pathname.startsWith("/api")
@@ -11,18 +11,11 @@ export function proxy(request) {
     return NextResponse.next();
   }
 
+  // Protect admin routes
   if (pathname.startsWith("/admin")) {
     const session = request.cookies.get("admin-session")?.value;
 
     if (!session) {
-      return NextResponse.redirect(
-        new URL("/admin/login", request.url)
-      );
-    }
-
-    // Basic token format validation
-    const parts = session.split(".");
-    if (parts.length !== 2) {
       return NextResponse.redirect(
         new URL("/admin/login", request.url)
       );
