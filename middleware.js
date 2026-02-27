@@ -1,18 +1,38 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
+
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
+
+function verifySession(token) {
+  try {
+    const [email, signature] = token.split(".");
+
+    const expectedSignature = crypto
+      .createHmac("sha256", ADMIN_SECRET)
+      .update(email)
+      .digest("hex");
+
+    return signature === expectedSignature;
+  } catch {
+    return false;
+  }
+}
 
 export function middleware(request) {
   const { pathname } = request.nextUrl;
 
-  // Allow login page without session
-  if (pathname === "/admin/login") {
+  // Allow login & API routes
+  if (
+    pathname.startsWith("/admin/login") ||
+    pathname.startsWith("/api")
+  ) {
     return NextResponse.next();
   }
 
-  // Protect all other admin routes
   if (pathname.startsWith("/admin")) {
-    const token = request.cookies.get("admin-session");
+    const session = request.cookies.get("admin-session");
 
-    if (!token) {
+    if (!session || !verifySession(session.value)) {
       return NextResponse.redirect(
         new URL("/admin/login", request.url)
       );

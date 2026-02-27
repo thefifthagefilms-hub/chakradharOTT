@@ -1,24 +1,28 @@
 import { NextResponse } from "next/server";
+import { db } from "@/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req) {
   const { email } = await req.json();
 
-  const allowedEmails = [
-    "thefifthagefilms@gmail.com",
-    "rahulchakradharperepogu@gmail.com",
-  ];
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-  if (!allowedEmails.includes(email)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  await addDoc(collection(db, "admin_otps"), {
+    email,
+    otp,
+    createdAt: Date.now(),
+    expiresAt: Date.now() + 5 * 60 * 1000,
+  });
 
-  const otp = Math.floor(100000 + Math.random() * 900000);
-
-  // Store OTP in memory temporarily
-  global.otpStore = { email, otp };
-
-  // Here you integrate email service (Resend, SendGrid etc.)
-  console.log("OTP:", otp);
+  await resend.emails.send({
+    from: "Chakradhar OTT <onboarding@resend.dev>",
+    to: email,
+    subject: "Admin OTP Verification",
+    html: `<h2>Your OTP is: ${otp}</h2><p>Valid for 5 minutes.</p>`,
+  });
 
   return NextResponse.json({ success: true });
 }
