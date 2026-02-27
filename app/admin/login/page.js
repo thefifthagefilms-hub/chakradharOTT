@@ -1,14 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { auth } from "../../../firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 
 export default function AdminLogin() {
-  const router = useRouter();
-
-  const [step, setStep] = useState(1); // 1 = password, 2 = otp
+  const [step, setStep] = useState(1);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
@@ -34,12 +31,18 @@ export default function AdminLogin() {
 
       await signInWithEmailAndPassword(auth, email, password);
 
-      // Send OTP
-      await fetch("/api/send-otp", {
+      const res = await fetch("/api/send-otp", {
         method: "POST",
         body: JSON.stringify({ email }),
         headers: { "Content-Type": "application/json" },
       });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        alert("Failed to send OTP.");
+        return;
+      }
 
       setStep(2);
     } catch {
@@ -66,7 +69,8 @@ export default function AdminLogin() {
       const data = await res.json();
 
       if (data.success) {
-        router.push("/admin");
+        // IMPORTANT: Force full reload so proxy reads cookie
+        window.location.href = "/admin";
       } else {
         alert("Invalid or expired OTP.");
       }
