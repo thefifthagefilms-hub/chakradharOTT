@@ -15,20 +15,53 @@ export async function POST(req) {
       );
     }
 
-    if (!process.env.RESEND_API_KEY) {
-      throw new Error("Missing RESEND_API_KEY");
-    }
+    const now = Date.now();
 
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    // 🔎 Check recent OTP requests
+    const recentSnapshot = await adminDb
+      .collection("admin_otps")
+      .where("email", "==", email)
+      .orderBy("createdAt", "desc")
+      .limit(3)
+      .get();
+
+    if (!recentSnapshot.empty) {
+      const recentDocs = recentSnapshot.docs.map((doc) => doc.data());
+
+      const lastOtp = recentDocs[0];
+
+      // ⛔ Cooldown: 60 seconds
+      if (now - lastOtp.createdAt < 60 * 1000) {
+        return NextResponse.json(
+          { success: false, error: "Wait before requesting new OTP." },
+          { status: 429 }
+        );
+      }
+
+      // ⛔ Max 3 OTPs in 5 minutes
+      const lastFiveMinutes = recentDocs.filter(
+        (doc) => now - doc.createdAt < 5 * 60 * 1000
+      );
+
+      if (lastFiveMinutes.length >= 3) {
+        return NextResponse.json(
+          { success: false, error: "Too many OTP requests. Try later." },
+          { status: 429 }
+        );
+      }
+    }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     await adminDb.collection("admin_otps").add({
       email,
       otp,
-      createdAt: Date.now(),
-      expiresAt: Date.now() + 5 * 60 * 1000,
+      attempts: 0,
+      createdAt: now,
+      expiresAt: now + 5 * 60 * 1000,
     });
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
 
     await resend.emails.send({
       from: "Chakradhar OTT <onboarding@resend.dev>",
@@ -37,7 +70,7 @@ export async function POST(req) {
       html: `
         <div style="font-family: sans-serif;">
           <h2>Your OTP is: ${otp}</h2>
-          <p>This OTP is valid for 5 minutes.</p>
+          <p>Valid for 5 minutes.</p>
         </div>
       `,
     });
@@ -47,7 +80,7 @@ export async function POST(req) {
   } catch (error) {
     console.error("SEND OTP ERROR:", error);
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: "Server error" },
       { status: 500 }
     );
   }

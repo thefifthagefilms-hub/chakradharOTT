@@ -15,11 +15,6 @@ export async function POST(req) {
       );
     }
 
-    if (!process.env.ADMIN_SECRET) {
-      throw new Error("Missing ADMIN_SECRET");
-    }
-
-    // 🔎 Find OTP record
     const snapshot = await adminDb
       .collection("admin_otps")
       .where("email", "==", email)
@@ -30,14 +25,24 @@ export async function POST(req) {
       return NextResponse.json({ success: false });
     }
 
-    const data = snapshot.docs[0].data();
+    const doc = snapshot.docs[0];
+    const data = doc.data();
 
-    // ⏰ Expiry check
+    // ⛔ Expired
     if (Date.now() > data.expiresAt) {
+      await doc.ref.delete();
       return NextResponse.json({ success: false });
     }
 
-    // 🔐 Create secure signature
+    // ⛔ Too many attempts
+    if (data.attempts >= 3) {
+      await doc.ref.delete();
+      return NextResponse.json({ success: false });
+    }
+
+    // ✅ Success → Delete OTP
+    await doc.ref.delete();
+
     const signature = crypto
       .createHmac("sha256", process.env.ADMIN_SECRET)
       .update(email)
@@ -47,12 +52,11 @@ export async function POST(req) {
 
     const response = NextResponse.json({ success: true });
 
-    // 🍪 Correct cookie configuration
     response.cookies.set("admin-session", token, {
       httpOnly: true,
-      secure: true,        // Required on Vercel (HTTPS)
-      sameSite: "lax",     // 🔥 Prevents redirect loop
-      maxAge: 60 * 30,     // 30 minutes
+      secure: true,
+      sameSite: "lax",
+      maxAge: 60 * 30,
       path: "/",
     });
 
