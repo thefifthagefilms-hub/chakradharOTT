@@ -1,8 +1,7 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { db } from "@/firebase";
-import { collection, addDoc } from "firebase/firestore";
+import { adminDb } from "@/lib/firebaseAdmin";
 import { Resend } from "resend";
 
 export async function POST(req) {
@@ -24,7 +23,7 @@ export async function POST(req) {
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    await addDoc(collection(db, "admin_otps"), {
+    await adminDb.collection("admin_otps").add({
       email,
       otp,
       createdAt: Date.now(),
@@ -44,6 +43,7 @@ export async function POST(req) {
     });
 
     return NextResponse.json({ success: true });
+
   } catch (error) {
     console.error("SEND OTP ERROR:", error);
     return NextResponse.json(

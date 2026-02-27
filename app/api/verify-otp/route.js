@@ -1,8 +1,7 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { db } from "@/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { adminDb } from "@/lib/firebaseAdmin";
 import crypto from "crypto";
 
 export async function POST(req) {
@@ -20,13 +19,11 @@ export async function POST(req) {
       throw new Error("Missing ADMIN_SECRET");
     }
 
-    const q = query(
-      collection(db, "admin_otps"),
-      where("email", "==", email),
-      where("otp", "==", otp)
-    );
-
-    const snapshot = await getDocs(q);
+    const snapshot = await adminDb
+      .collection("admin_otps")
+      .where("email", "==", email)
+      .where("otp", "==", otp)
+      .get();
 
     if (snapshot.empty) {
       return NextResponse.json({ success: false });
@@ -55,10 +52,11 @@ export async function POST(req) {
     });
 
     return response;
+
   } catch (error) {
     console.error("VERIFY OTP ERROR:", error);
     return NextResponse.json(
-      { success: false },
+      { success: false, error: error.message },
       { status: 500 }
     );
   }
