@@ -7,21 +7,20 @@ function verifySession(token) {
   try {
     const [email, signature] = token.split(".");
 
-    const expectedSignature = crypto
+    const expected = crypto
       .createHmac("sha256", ADMIN_SECRET)
       .update(email)
       .digest("hex");
 
-    return signature === expectedSignature;
+    return signature === expected;
   } catch {
     return false;
   }
 }
 
-export function middleware(request) {
+export function proxy(request) {
   const { pathname } = request.nextUrl;
 
-  // Allow login & API routes
   if (
     pathname.startsWith("/admin/login") ||
     pathname.startsWith("/api")
