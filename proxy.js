@@ -1,26 +1,9 @@
 import { NextResponse } from "next/server";
-import crypto from "crypto";
-
-const ADMIN_SECRET = process.env.ADMIN_SECRET;
-
-function verifySession(token) {
-  try {
-    const [email, signature] = token.split(".");
-
-    const expected = crypto
-      .createHmac("sha256", ADMIN_SECRET)
-      .update(email)
-      .digest("hex");
-
-    return signature === expected;
-  } catch {
-    return false;
-  }
-}
 
 export function proxy(request) {
   const { pathname } = request.nextUrl;
 
+  // Allow login and APIs
   if (
     pathname.startsWith("/admin/login") ||
     pathname.startsWith("/api")
@@ -29,9 +12,17 @@ export function proxy(request) {
   }
 
   if (pathname.startsWith("/admin")) {
-    const session = request.cookies.get("admin-session");
+    const session = request.cookies.get("admin-session")?.value;
 
-    if (!session || !verifySession(session.value)) {
+    if (!session) {
+      return NextResponse.redirect(
+        new URL("/admin/login", request.url)
+      );
+    }
+
+    // Basic token format validation
+    const parts = session.split(".");
+    if (parts.length !== 2) {
       return NextResponse.redirect(
         new URL("/admin/login", request.url)
       );
