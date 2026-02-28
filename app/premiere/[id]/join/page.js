@@ -21,11 +21,23 @@ export default function JoinPremierePage() {
       return;
     }
 
+    if (!ticketCode.trim()) {
+      setError("Enter ticket code.");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
     try {
-      const ticketRef = doc(db, "premieres", id, "tickets", ticketCode);
+      const ticketRef = doc(
+        db,
+        "premieres",
+        id,
+        "tickets",
+        ticketCode.trim().toUpperCase()
+      );
+
       const ticketSnap = await getDoc(ticketRef);
 
       if (!ticketSnap.exists()) {
@@ -42,13 +54,14 @@ export default function JoinPremierePage() {
         return;
       }
 
+      // Mark ticket permanently used
       await updateDoc(ticketRef, {
         used: true,
         usedBy: user.uid,
+        usedAt: new Date(),
       });
 
       router.push(`/premiere/${id}/room`);
-
     } catch (err) {
       setError("Validation failed.");
     }
@@ -58,7 +71,6 @@ export default function JoinPremierePage() {
 
   return (
     <div className="min-h-screen bg-black text-white flex items-center justify-center px-4">
-
       <div className="bg-white/5 border border-white/10 rounded-2xl p-8 w-full max-w-md">
 
         <h1 className="text-2xl font-bold mb-6 text-center">
@@ -74,7 +86,7 @@ export default function JoinPremierePage() {
         />
 
         {error && (
-          <p className="text-red-500 text-sm mb-3">
+          <p className="text-red-500 text-sm mb-3 text-center">
             {error}
           </p>
         )}
