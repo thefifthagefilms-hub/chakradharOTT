@@ -1,16 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
-  const [search, setSearch] = useState("");
+  const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [movies, setMovies] = useState([]);
 
+  const dropdownRef = useRef(null);
+
+  /* ---------------- Scroll Effect ---------------- */
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
@@ -19,6 +23,7 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  /* ---------------- Fetch Movies Once ---------------- */
   useEffect(() => {
     const fetchMovies = async () => {
       const snapshot = await getDocs(collection(db, "movies"));
@@ -32,12 +37,40 @@ export default function Navbar() {
     fetchMovies();
   }, []);
 
-  const filtered =
-    search.length > 0
-      ? movies.filter((m) =>
-          m.title.toLowerCase().includes(search.toLowerCase())
-        )
-      : [];
+  /* ---------------- Debounce Query ---------------- */
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  /* ---------------- Derived Results (NO setState) ---------------- */
+  const results = useMemo(() => {
+    if (!debouncedQuery) return [];
+
+    return movies
+      .filter((m) =>
+        m.title.toLowerCase().includes(debouncedQuery.toLowerCase())
+      )
+      .slice(0, 6);
+  }, [debouncedQuery, movies]);
+
+  /* ---------------- Outside Click ---------------- */
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target)
+      ) {
+        setQuery("");
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () =>
+      document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <motion.nav
@@ -52,34 +85,33 @@ export default function Navbar() {
     >
       <div className="flex items-center justify-between px-6 md:px-14 py-4">
 
-        {/* Logo */}
         <Link href="/" className="text-2xl md:text-3xl font-bold text-white">
           Chakradhar <span className="text-red-600">OTT</span>
         </Link>
 
-        {/* Desktop Search */}
-        <div className="relative w-64 hidden md:block">
+        <div className="relative w-64 hidden md:block" ref={dropdownRef}>
           <input
             type="text"
             placeholder="Search movies..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
             className="w-full bg-white/5 backdrop-blur-lg border border-white/10 rounded-full px-4 py-2 text-sm text-white focus:outline-none focus:border-red-600"
           />
 
           <AnimatePresence>
-            {filtered.length > 0 && (
+            {results.length > 0 && (
               <motion.div
-                initial={{ opacity: 0, y: -10 }}
+                initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
                 className="absolute top-12 w-full bg-black/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl max-h-64 overflow-y-auto"
               >
-                {filtered.slice(0, 6).map((movie) => (
+                {results.map((movie) => (
                   <Link
                     key={movie.id}
                     href={`/movie/${movie.id}`}
-                    onClick={() => setSearch("")}
+                    onClick={() => setQuery("")}
                     className="block px-4 py-3 text-sm hover:bg-white/10 transition"
                   >
                     {movie.title}

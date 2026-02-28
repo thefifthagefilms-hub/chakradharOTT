@@ -1,17 +1,14 @@
-import { db } from "../../../firebase";
-import { doc, getDoc } from "firebase/firestore";
-import CommentSection from "../../../components/CommentSection";
-import RatingSection from "../../../components/RatingSection";
-import ViewTracker from "../../../components/ViewTracker";
+import { adminDb } from "@/lib/firebaseAdmin";
+import CommentSection from "@/components/CommentSection";
+import RatingSection from "@/components/RatingSection";
+import ViewTracker from "@/components/ViewTracker";
 
 export default async function MovieDetail({ params }) {
-  const resolvedParams = await params;
-  const id = resolvedParams.id;
+  const { id } = params;
 
-  const docRef = doc(db, "movies", id);
-  const docSnap = await getDoc(docRef);
+  const snapshot = await adminDb.collection("movies").doc(id).get();
 
-  if (!docSnap.exists()) {
+  if (!snapshot.exists) {
     return (
       <div className="bg-black text-white min-h-screen flex items-center justify-center">
         Movie not found.
@@ -19,7 +16,7 @@ export default async function MovieDetail({ params }) {
     );
   }
 
-  const movie = docSnap.data();
+  const movie = snapshot.data();
 
   const viewsReal = movie.viewsReal || 0;
   const viewsBoost = movie.viewsBoost || 0;
@@ -64,10 +61,8 @@ export default async function MovieDetail({ params }) {
       {/* MAIN CONTENT */}
       <section className="px-4 md:px-16 py-12 md:py-20 space-y-14">
 
-        {/* PREMIUM VIDEO CONTAINER */}
+        {/* VIDEO */}
         <div className="relative rounded-3xl overflow-hidden border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.03] backdrop-blur-2xl shadow-[0_0_80px_rgba(0,0,0,0.7)]">
-
-          <div className="absolute inset-0 rounded-3xl border border-white/10 pointer-events-none" />
 
           <div className="aspect-video">
             <iframe
@@ -87,7 +82,7 @@ export default async function MovieDetail({ params }) {
         {/* INFO GRID */}
         <div className="grid lg:grid-cols-3 gap-10">
 
-          {/* DESCRIPTION (COLLAPSIBLE STYLE) */}
+          {/* DESCRIPTION */}
           <div className="lg:col-span-2 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 md:p-10 shadow-xl">
 
             <h2 className="text-xl md:text-2xl font-semibold mb-6">
@@ -130,7 +125,7 @@ export default async function MovieDetail({ params }) {
                 Director
               </p>
               <p className="font-medium text-lg">
-                {movie.director || movie.directorBio || "Not Available"}
+                {movie.director || "Not Available"}
               </p>
             </div>
 
