@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { sendEmailVerification } from "firebase/auth";
+import { auth } from "@/firebase";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,36 +20,58 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+  /* ---------------- GOOGLE LOGIN ---------------- */
+
   const handleGoogle = async () => {
     try {
       setLoading(true);
       await loginWithGoogle();
       router.push("/");
     } catch (err) {
-      alert("Google login failed.");
+      console.error("Google Error:", err);
+      alert(err.message);
     } finally {
       setLoading(false);
     }
   };
 
+  /* ---------------- EMAIL LOGIN / REGISTER ---------------- */
+
   const handleEmailAuth = async (e) => {
     e.preventDefault();
+
     try {
       setLoading(true);
 
       if (mode === "login") {
-        await loginWithEmail(email, password);
+        const userCredential = await loginWithEmail(email, password);
+
+        // Block unverified users
+        if (!auth.currentUser.emailVerified) {
+          alert("Please verify your email before logging in.");
+          return;
+        }
       } else {
-        await registerWithEmail(email, password);
+        const userCredential = await registerWithEmail(email, password);
+
+        // Send verification email
+        await sendEmailVerification(auth.currentUser);
+
+        alert("Verification email sent. Please check your inbox.");
+        setMode("login");
+        return;
       }
 
       router.push("/");
     } catch (err) {
-      alert("Authentication failed.");
+      console.error("Auth Error:", err);
+      alert(err.message);
     } finally {
       setLoading(false);
     }
   };
+
+  /* ---------------- FORGOT PASSWORD ---------------- */
 
   const handleForgotPassword = async () => {
     if (!email) {
@@ -58,8 +82,9 @@ export default function LoginPage() {
     try {
       await resetPassword(email);
       alert("Password reset email sent.");
-    } catch {
-      alert("Error sending reset email.");
+    } catch (err) {
+      console.error("Reset Error:", err);
+      alert(err.message);
     }
   };
 
@@ -72,7 +97,7 @@ export default function LoginPage() {
           {mode === "login" ? "Welcome Back" : "Create Account"}
         </h1>
 
-        {/* Google Login */}
+        {/* GOOGLE LOGIN */}
         <button
           onClick={handleGoogle}
           disabled={loading}
@@ -85,7 +110,7 @@ export default function LoginPage() {
           OR
         </div>
 
-        {/* Email Form */}
+        {/* EMAIL FORM */}
         <form onSubmit={handleEmailAuth} className="space-y-4">
 
           <input
