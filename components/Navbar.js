@@ -1,20 +1,26 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useRef, useState, useMemo } from "react";
 import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Navbar() {
+  const { user, logout } = useAuth();
+
   const [scrolled, setScrolled] = useState(false);
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [movies, setMovies] = useState([]);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const dropdownRef = useRef(null);
+  const profileRef = useRef(null);
 
-  /* ---------------- Scroll Effect ---------------- */
+  /* Scroll Effect */
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
@@ -23,7 +29,7 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  /* ---------------- Fetch Movies Once ---------------- */
+  /* Fetch Movies */
   useEffect(() => {
     const fetchMovies = async () => {
       const snapshot = await getDocs(collection(db, "movies"));
@@ -37,7 +43,7 @@ export default function Navbar() {
     fetchMovies();
   }, []);
 
-  /* ---------------- Debounce Query ---------------- */
+  /* Debounce Search */
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(query);
@@ -45,10 +51,8 @@ export default function Navbar() {
     return () => clearTimeout(timer);
   }, [query]);
 
-  /* ---------------- Derived Results (NO setState) ---------------- */
   const results = useMemo(() => {
     if (!debouncedQuery) return [];
-
     return movies
       .filter((m) =>
         m.title.toLowerCase().includes(debouncedQuery.toLowerCase())
@@ -56,7 +60,7 @@ export default function Navbar() {
       .slice(0, 6);
   }, [debouncedQuery, movies]);
 
-  /* ---------------- Outside Click ---------------- */
+  /* Outside Click */
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -64,6 +68,13 @@ export default function Navbar() {
         !dropdownRef.current.contains(event.target)
       ) {
         setQuery("");
+      }
+
+      if (
+        profileRef.current &&
+        !profileRef.current.contains(event.target)
+      ) {
+        setProfileOpen(false);
       }
     };
 
@@ -85,10 +96,12 @@ export default function Navbar() {
     >
       <div className="flex items-center justify-between px-6 md:px-14 py-4">
 
+        {/* Logo */}
         <Link href="/" className="text-2xl md:text-3xl font-bold text-white">
           Chakradhar <span className="text-red-600">OTT</span>
         </Link>
 
+        {/* Search */}
         <div className="relative w-64 hidden md:block" ref={dropdownRef}>
           <input
             type="text"
@@ -120,6 +133,62 @@ export default function Navbar() {
               </motion.div>
             )}
           </AnimatePresence>
+        </div>
+
+        {/* Auth */}
+        <div className="ml-6 relative" ref={profileRef}>
+          {!user ? (
+            <Link
+              href="/login"
+              className="bg-red-600 hover:bg-red-700 px-5 py-2 rounded-full text-sm transition"
+            >
+              Login
+            </Link>
+          ) : (
+            <div className="relative">
+              <button
+                onClick={() => setProfileOpen(!profileOpen)}
+                className="flex items-center gap-2"
+              >
+                <Image
+                  src={
+                    user.photoURL ||
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email)}`
+                  }
+                  alt="profile"
+                  width={36}
+                  height={36}
+                  className="rounded-full border border-white/20"
+                />
+              </button>
+
+              <AnimatePresence>
+                {profileOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute right-0 mt-3 w-44 bg-black/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden"
+                  >
+                    <Link
+                      href="/profile"
+                      className="block px-4 py-3 text-sm hover:bg-white/10 transition"
+                    >
+                      My Profile
+                    </Link>
+
+                    <button
+                      onClick={logout}
+                      className="w-full text-left px-4 py-3 text-sm hover:bg-white/10 transition"
+                    >
+                      Logout
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
         </div>
 
       </div>
