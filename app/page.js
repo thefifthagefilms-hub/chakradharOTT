@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 import Link from "next/link";
 import Image from "next/image";
+import CardWishlistIcon from "@/components/CardWishlistIcon";
 
 /* =========================================
    CINEMATIC HERO
@@ -31,7 +32,6 @@ function CinematicHero({ movie }) {
         className="object-cover scale-105"
       />
 
-      {/* Layered Gradients */}
       <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-black/30" />
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
 
@@ -89,6 +89,9 @@ function MovieRow({ title, movies }) {
           >
             <div className="relative aspect-[2/3] w-[190px] md:w-[240px] overflow-hidden rounded-2xl shadow-xl transition-all duration-500 group-hover:scale-[1.08]">
 
+              {/* ❤️ Wishlist Sync */}
+              <CardWishlistIcon movieId={movie.id} />
+
               <Image
                 src={movie.posterImage}
                 alt={movie.title}
@@ -130,7 +133,6 @@ export default function Home() {
   useEffect(() => {
     const fetchHomepage = async () => {
 
-      /* ===== TRENDING (ADMIN CONTROLLED) ===== */
       const trendingQuery = query(
         collection(db, "movies"),
         where("trending", "==", true),
@@ -145,7 +147,6 @@ export default function Home() {
 
       setTrending(trendingMovies);
 
-      /* ===== FEATURED (ADMIN CONTROLLED) ===== */
       const featuredQuery = query(
         collection(db, "movies"),
         where("featured", "==", true),
@@ -160,7 +161,6 @@ export default function Home() {
 
       setFeatured(featuredMovies);
 
-      /* ===== NEW RELEASES ===== */
       const newQuery = query(
         collection(db, "movies"),
         orderBy("releaseDate", "desc"),
@@ -175,7 +175,6 @@ export default function Home() {
 
       setNewReleases(newMovies);
 
-      /* ===== HERO PRIORITY ===== */
       setHero(
         featuredMovies[0] ||
         trendingMovies[0] ||

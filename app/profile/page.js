@@ -19,6 +19,7 @@ import {
 } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
@@ -30,7 +31,7 @@ export default function ProfilePage() {
   const [ratings, setRatings] = useState([]);
   const [watchHistory, setWatchHistory] = useState([]);
 
-  /* ---------- Redirect (no setState here) ---------- */
+  /* ---------- Redirect ---------- */
 
   useEffect(() => {
     if (user === null) {
@@ -47,7 +48,13 @@ export default function ProfilePage() {
       const snap = await getDocs(
         collection(db, "users", user.uid, "wishlist")
       );
-      setWishlist(snap.docs.map(doc => doc.data()));
+
+      setWishlist(
+        snap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }))
+      );
     };
 
     fetchWishlist();
@@ -60,29 +67,20 @@ export default function ProfilePage() {
 
     const fetchActivity = async () => {
       const commentSnap = await getDocs(
-        query(
-          collection(db, "comments"),
-          where("userId", "==", user.uid)
-        )
+        query(collection(db, "comments"), where("userId", "==", user.uid))
       );
 
       const ratingSnap = await getDocs(
-        query(
-          collection(db, "ratings"),
-          where("userId", "==", user.uid)
-        )
+        query(collection(db, "ratings"), where("userId", "==", user.uid))
       );
 
       const watchSnap = await getDocs(
-        query(
-          collection(db, "views"),
-          where("userId", "==", user.uid)
-        )
+        query(collection(db, "views"), where("userId", "==", user.uid))
       );
 
-      setComments(commentSnap.docs.map(d => d.data()));
-      setRatings(ratingSnap.docs.map(d => d.data()));
-      setWatchHistory(watchSnap.docs.map(d => d.data()));
+      setComments(commentSnap.docs.map((d) => d.data()));
+      setRatings(ratingSnap.docs.map((d) => d.data()));
+      setWatchHistory(watchSnap.docs.map((d) => d.data()));
     };
 
     fetchActivity();
@@ -117,8 +115,6 @@ export default function ProfilePage() {
 
   const getInitials = (email) =>
     email?.slice(0, 2).toUpperCase();
-
-  /* ---------- Loading UI ---------- */
 
   if (user === undefined) {
     return (
@@ -171,7 +167,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Logout bottom */}
         <button
           onClick={logout}
           className="mt-6 bg-yellow-600 px-4 py-2 rounded-lg hover:bg-yellow-700 transition text-sm"
@@ -181,7 +176,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 p-6 md:p-10 space-y-6">
+      <div className="flex-1 p-6 md:p-10 space-y-8">
 
         {activeTab === "overview" && (
           <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
@@ -227,18 +222,46 @@ export default function ProfilePage() {
         )}
 
         {activeTab === "wishlist" && (
-          <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
-            <h2 className="text-xl font-bold mb-4">My List</h2>
+          <div>
+            <h2 className="text-xl font-bold mb-6">My List</h2>
 
             {wishlist.length === 0 && (
-              <p>No saved movies yet.</p>
+              <p className="text-gray-400">
+                You haven’t added any movies yet.
+              </p>
             )}
 
-            {wishlist.map((movie, i) => (
-              <p key={i} className="text-sm">
-                {movie.title}
-              </p>
-            ))}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+              {wishlist.map((movie) => (
+                <Link
+                  key={movie.id}
+                  href={`/movie/${movie.movieId}`}
+                  className="group"
+                >
+                  <div className="relative aspect-[2/3] overflow-hidden rounded-2xl shadow-xl transition-all duration-500 group-hover:scale-[1.05]">
+
+                    <Image
+                      src={movie.posterImage || "/homepage-banner.jpg"}
+                      alt={movie.title}
+                      fill
+                      sizes="300px"
+                      className="object-cover transition duration-500 group-hover:scale-110"
+                    />
+
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                      <span className="bg-red-600 px-4 py-2 rounded-full text-xs md:text-sm font-medium shadow-lg">
+                        ▶ Watch
+                      </span>
+                    </div>
+
+                  </div>
+
+                  <p className="mt-3 text-sm md:text-base text-gray-300 group-hover:text-white transition line-clamp-1">
+                    {movie.title}
+                  </p>
+                </Link>
+              ))}
+            </div>
           </div>
         )}
 
