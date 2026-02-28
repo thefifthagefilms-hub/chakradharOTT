@@ -6,10 +6,14 @@ import RatingSection from "@/components/RatingSection";
 import ViewTracker from "@/components/ViewTracker";
 
 export default async function MovieDetail({ params }) {
-  const id = params?.id;
+  // ✅ Resolve params safely
+  const resolvedParams = await params;
+  const id = resolvedParams?.id;
 
   if (!id) {
-    return NotFound("Invalid movie.");
+    return (
+      <CenterMessage message="Invalid movie." />
+    );
   }
 
   let snapshot;
@@ -18,11 +22,11 @@ export default async function MovieDetail({ params }) {
     snapshot = await adminDb.collection("movies").doc(id).get();
   } catch (error) {
     console.error("Firestore error:", error);
-    return NotFound("Server error.");
+    return <CenterMessage message="Server error." />;
   }
 
-  if (!snapshot || !snapshot.exists) {
-    return NotFound("Movie not found.");
+  if (!snapshot.exists) {
+    return <CenterMessage message="Movie not found." />;
   }
 
   const movie = snapshot.data() || {};
@@ -36,7 +40,9 @@ export default async function MovieDetail({ params }) {
 
       <ViewTracker movieId={id} />
 
+      {/* HERO */}
       <section className="relative h-[60vh] md:h-[75vh] flex items-end">
+
         <div
           className="absolute inset-0 bg-cover bg-center scale-105"
           style={{
@@ -48,25 +54,31 @@ export default async function MovieDetail({ params }) {
 
         <div className="relative z-10 w-full px-6 md:px-16 pb-10 md:pb-20">
           <div className="max-w-5xl bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 md:p-10 shadow-[0_0_80px_rgba(0,0,0,0.6)]">
+
             <h1 className="text-3xl md:text-6xl font-bold mb-4 tracking-tight">
               {movie.title || "Untitled"}
             </h1>
 
-            <p className="text-gray-300 text-sm md:text-lg mb-4">
-              {movie.tagline || ""}
-            </p>
+            {movie.tagline && (
+              <p className="text-gray-300 text-sm md:text-lg mb-4">
+                {movie.tagline}
+              </p>
+            )}
 
             <div className="flex flex-wrap gap-4 text-xs md:text-sm text-gray-400">
               <span>{movie.genre || "—"}</span>
               <span>{movie.releaseDate || "—"}</span>
               <span>{totalViews.toLocaleString()} views</span>
             </div>
+
           </div>
         </div>
       </section>
 
+      {/* CONTENT */}
       <section className="px-4 md:px-16 py-12 md:py-20 space-y-14">
 
+        {/* VIDEO */}
         <div className="relative rounded-3xl overflow-hidden border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.03] backdrop-blur-2xl shadow-[0_0_80px_rgba(0,0,0,0.7)]">
           <div className="aspect-video">
             {movie.embedLink ? (
@@ -83,11 +95,14 @@ export default async function MovieDetail({ params }) {
           </div>
         </div>
 
+        {/* RATING */}
         <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-xl">
           <RatingSection movieId={id} />
         </div>
 
+        {/* INFO GRID */}
         <div className="grid lg:grid-cols-3 gap-10">
+
           <div className="lg:col-span-2 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 md:p-10 shadow-xl">
             <h2 className="text-xl md:text-2xl font-semibold mb-6">
               About the Movie
@@ -109,8 +124,10 @@ export default async function MovieDetail({ params }) {
             <Info label="Release Date" value={movie.releaseDate} />
             <Info label="Director" value={movie.director} />
           </div>
+
         </div>
 
+        {/* COMMENTS */}
         <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 md:p-10 shadow-xl">
           <CommentSection movieId={id} />
         </div>
@@ -120,7 +137,7 @@ export default async function MovieDetail({ params }) {
   );
 }
 
-function NotFound(message) {
+function CenterMessage({ message }) {
   return (
     <div className="bg-black text-white min-h-screen flex items-center justify-center">
       {message}
