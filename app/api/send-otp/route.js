@@ -17,18 +17,19 @@ export async function POST(req) {
 
     const now = Date.now();
 
-    // 🔎 Check recent OTP requests
-    const recentSnapshot = await adminDb
+    // 🔎 Get all OTPs for this email (no orderBy to avoid index requirement)
+    const snapshot = await adminDb
       .collection("admin_otps")
       .where("email", "==", email)
-      .orderBy("createdAt", "desc")
-      .limit(3)
       .get();
 
-    if (!recentSnapshot.empty) {
-      const recentDocs = recentSnapshot.docs.map((doc) => doc.data());
+    const docs = snapshot.docs.map((doc) => doc.data());
 
-      const lastOtp = recentDocs[0];
+    if (docs.length > 0) {
+      // Sort manually (latest first)
+      docs.sort((a, b) => b.createdAt - a.createdAt);
+
+      const lastOtp = docs[0];
 
       // ⛔ Cooldown: 60 seconds
       if (now - lastOtp.createdAt < 60 * 1000) {
@@ -39,7 +40,7 @@ export async function POST(req) {
       }
 
       // ⛔ Max 3 OTPs in 5 minutes
-      const lastFiveMinutes = recentDocs.filter(
+      const lastFiveMinutes = docs.filter(
         (doc) => now - doc.createdAt < 5 * 60 * 1000
       );
 
