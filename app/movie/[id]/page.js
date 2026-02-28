@@ -6,9 +6,10 @@ import { adminDb } from "@/lib/firebaseAdmin";
 import CommentSection from "@/components/CommentSection";
 import RatingSection from "@/components/RatingSection";
 import ViewTracker from "@/components/ViewTracker";
+import WishlistButton from "@/components/WishlistButton";
 
 /* =========================
-   METADATA (SEO + Sharing)
+   METADATA
 ========================= */
 
 export async function generateMetadata({ params }) {
@@ -70,7 +71,7 @@ export default async function MovieDetail({ params }) {
       <ViewTracker movieId={id} />
 
       {/* HERO */}
-      <section className="relative h-[60vh] md:h-[75vh] flex items-end">
+      <section className="relative h-[65vh] md:h-[80vh] flex items-end">
 
         <div
           className="absolute inset-0 bg-cover bg-center scale-105"
@@ -84,20 +85,37 @@ export default async function MovieDetail({ params }) {
         <div className="relative z-10 w-full px-6 md:px-16 pb-10 md:pb-20">
           <div className="max-w-5xl bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 md:p-10 shadow-[0_0_80px_rgba(0,0,0,0.6)]">
 
-            <h1 className="text-3xl md:text-6xl font-bold mb-4 tracking-tight">
-              {movie.title || "Untitled"}
-            </h1>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
 
-            {movie.tagline && (
-              <p className="text-gray-300 text-sm md:text-lg mb-4">
-                {movie.tagline}
-              </p>
-            )}
+              <div>
+                <h1 className="text-3xl md:text-6xl font-bold mb-4 tracking-tight">
+                  {movie.title || "Untitled"}
+                </h1>
 
-            <div className="flex flex-wrap gap-4 text-xs md:text-sm text-gray-400">
-              <span>{movie.genre || "—"}</span>
-              <span>{movie.releaseDate || "—"}</span>
-              <span>{totalViews.toLocaleString()} views</span>
+                {movie.tagline && (
+                  <p className="text-gray-300 text-sm md:text-lg mb-4">
+                    {movie.tagline}
+                  </p>
+                )}
+
+                <div className="flex flex-wrap gap-4 text-xs md:text-sm text-gray-400">
+                  <span>{movie.genre || "—"}</span>
+                  <span>{movie.releaseDate || "—"}</span>
+                  <span>{totalViews.toLocaleString()} views</span>
+                </div>
+              </div>
+
+              {/* ❤️ Wishlist Button */}
+              <div className="mt-4 md:mt-0">
+                <WishlistButton
+                  movie={{
+                    id,
+                    title: movie.title,
+                    posterImage: movie.posterImage || movie.bannerImage,
+                  }}
+                />
+              </div>
+
             </div>
 
           </div>
@@ -168,9 +186,7 @@ export default async function MovieDetail({ params }) {
   );
 }
 
-/* =========================
-   SMALL COMPONENTS
-========================= */
+/* ========================= */
 
 function Info({ label, value }) {
   return (
