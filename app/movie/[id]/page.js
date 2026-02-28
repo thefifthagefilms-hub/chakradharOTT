@@ -1,20 +1,51 @@
 export const runtime = "nodejs";
+export const revalidate = 60;
 
+import { notFound } from "next/navigation";
 import { adminDb } from "@/lib/firebaseAdmin";
 import CommentSection from "@/components/CommentSection";
 import RatingSection from "@/components/RatingSection";
 import ViewTracker from "@/components/ViewTracker";
 
-export default async function MovieDetail({ params }) {
-  // ✅ Resolve params safely
+/* =========================
+   METADATA (SEO + Sharing)
+========================= */
+
+export async function generateMetadata({ params }) {
   const resolvedParams = await params;
   const id = resolvedParams?.id;
 
-  if (!id) {
-    return (
-      <CenterMessage message="Invalid movie." />
-    );
+  if (!id) return {};
+
+  try {
+    const snapshot = await adminDb.collection("movies").doc(id).get();
+    if (!snapshot.exists) return {};
+
+    const movie = snapshot.data();
+
+    return {
+      title: `${movie.title} | Chakradhar OTT`,
+      description: movie.description?.slice(0, 160) || "",
+      openGraph: {
+        title: movie.title,
+        description: movie.description?.slice(0, 160) || "",
+        images: movie.bannerImage ? [movie.bannerImage] : [],
+      },
+    };
+  } catch {
+    return {};
   }
+}
+
+/* =========================
+   PAGE
+========================= */
+
+export default async function MovieDetail({ params }) {
+  const resolvedParams = await params;
+  const id = resolvedParams?.id;
+
+  if (!id) notFound();
 
   let snapshot;
 
@@ -22,12 +53,10 @@ export default async function MovieDetail({ params }) {
     snapshot = await adminDb.collection("movies").doc(id).get();
   } catch (error) {
     console.error("Firestore error:", error);
-    return <CenterMessage message="Server error." />;
+    notFound();
   }
 
-  if (!snapshot.exists) {
-    return <CenterMessage message="Movie not found." />;
-  }
+  if (!snapshot.exists) notFound();
 
   const movie = snapshot.data() || {};
 
@@ -75,7 +104,7 @@ export default async function MovieDetail({ params }) {
         </div>
       </section>
 
-      {/* CONTENT */}
+      {/* MAIN CONTENT */}
       <section className="px-4 md:px-16 py-12 md:py-20 space-y-14">
 
         {/* VIDEO */}
@@ -86,6 +115,8 @@ export default async function MovieDetail({ params }) {
                 src={movie.embedLink}
                 className="w-full h-full rounded-3xl"
                 allowFullScreen
+                loading="lazy"
+                referrerPolicy="strict-origin-when-cross-origin"
               />
             ) : (
               <div className="flex items-center justify-center h-full">
@@ -108,7 +139,7 @@ export default async function MovieDetail({ params }) {
               About the Movie
             </h2>
 
-            <div className="text-gray-300 text-sm md:text-base leading-relaxed max-h-[250px] overflow-y-auto pr-2">
+            <div className="text-gray-300 text-sm md:text-base leading-relaxed max-h-[300px] overflow-y-auto pr-2">
               {movie.description
                 ? movie.description.split("\n").map((line, index) => (
                     <p key={index} className="mb-4">
@@ -137,13 +168,9 @@ export default async function MovieDetail({ params }) {
   );
 }
 
-function CenterMessage({ message }) {
-  return (
-    <div className="bg-black text-white min-h-screen flex items-center justify-center">
-      {message}
-    </div>
-  );
-}
+/* =========================
+   SMALL COMPONENTS
+========================= */
 
 function Info({ label, value }) {
   return (
