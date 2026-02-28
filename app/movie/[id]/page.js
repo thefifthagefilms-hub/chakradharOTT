@@ -6,7 +6,7 @@ import RatingSection from "@/components/RatingSection";
 import ViewTracker from "@/components/ViewTracker";
 
 export default async function MovieDetail({ params }) {
-  const { id } = params;
+  const id = params?.id;
 
   if (!id) {
     return NotFound("Invalid movie.");
