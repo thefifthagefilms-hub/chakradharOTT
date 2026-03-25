@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { db } from "../../../../firebase";
+import { db } from "@/firebase"; // ✅ FIXED
 import { doc, getDoc } from "firebase/firestore";
 import { useParams } from "next/navigation";
-import { useAuth } from "../../../../context/AuthContext";
+import { useAuth } from "@/context/AuthContext"; // ✅ FIXED
 
 export default function PremiereRoomPage() {
   const { id } = useParams();
@@ -17,11 +17,16 @@ export default function PremiereRoomPage() {
     if (!id) return;
 
     const fetchPremiere = async () => {
-      const snap = await getDoc(doc(db, "premieres", id));
-      if (snap.exists()) {
-        setPremiere({ id: snap.id, ...snap.data() });
+      try {
+        const snap = await getDoc(doc(db, "premieres", id));
+        if (snap.exists()) {
+          setPremiere({ id: snap.id, ...snap.data() });
+        }
+      } catch (error) {
+        console.error("Error fetching premiere:", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchPremiere();
@@ -53,7 +58,6 @@ export default function PremiereRoomPage() {
 
   return (
     <div className="min-h-screen bg-black text-white px-4 md:px-16 py-10">
-
       <div className="max-w-6xl mx-auto space-y-8">
 
         <h1 className="text-3xl md:text-4xl font-bold">
@@ -63,7 +67,6 @@ export default function PremiereRoomPage() {
         {/* Video Section */}
         <div className="bg-white/5 border border-white/10 rounded-3xl overflow-hidden">
           <div className="aspect-video">
-
             {premiere.embedLink ? (
               <iframe
                 src={premiere.embedLink}
@@ -75,11 +78,10 @@ export default function PremiereRoomPage() {
                 Live Stream Will Start Soon
               </div>
             )}
-
           </div>
         </div>
 
-        {/* Basic Live Chat Placeholder */}
+        {/* Chat Placeholder */}
         <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
           <h2 className="text-xl font-semibold mb-4">
             Live Chat (Coming Next)
