@@ -11,6 +11,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 
 function generateTicketCode() {
   const part1 = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -54,6 +55,12 @@ export default function AdminPremiereDetail() {
     fetchData();
   }, [id]);
 
+  /* 🔴 STATUS CONTROL */
+  const updateStatus = async (status) => {
+    await updateDoc(doc(db, "premieres", id), { status });
+    setPremiere((prev) => ({ ...prev, status }));
+  };
+
   /* Generate Tickets */
   const handleGenerate = async () => {
     for (let i = 0; i < ticketCount; i++) {
@@ -81,7 +88,7 @@ export default function AdminPremiereDetail() {
     );
   };
 
-  /* Toggle Used (Admin Override) */
+  /* Toggle Used */
   const toggleUsed = async (ticketId, currentStatus) => {
     await updateDoc(
       doc(db, "premieres", id, "tickets", ticketId),
@@ -100,21 +107,66 @@ export default function AdminPremiereDetail() {
   };
 
   if (loading) {
-    return (
-      <div className="p-10 text-white">
-        Loading...
-      </div>
-    );
+    return <div className="p-10 text-white">Loading...</div>;
   }
 
   return (
-    <div className="p-6 md:p-10 text-white">
+    <div className="p-6 md:p-10 text-white space-y-8">
 
-      <h1 className="text-2xl md:text-3xl font-bold mb-6">
+      {/* TITLE */}
+      <h1 className="text-2xl md:text-3xl font-bold">
         {premiere?.title}
       </h1>
 
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8">
+      {/* STATUS + CONTROLS */}
+      <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4">
+
+        <div className="flex items-center gap-4 flex-wrap">
+
+          <span className={`text-xs px-3 py-1 rounded-full ${
+            premiere?.status === "live"
+              ? "bg-red-600"
+              : premiere?.status === "ended"
+              ? "bg-gray-600"
+              : "bg-yellow-600"
+          }`}>
+            {premiere?.status || "scheduled"}
+          </span>
+
+          <button
+            onClick={() => updateStatus("live")}
+            className="bg-green-600 px-4 py-2 rounded-lg text-sm"
+          >
+            ▶ Start
+          </button>
+
+          <button
+            onClick={() => updateStatus("ended")}
+            className="bg-gray-700 px-4 py-2 rounded-lg text-sm"
+          >
+            ⛔ End
+          </button>
+
+          <Link
+            href={`/admin/premieres/${id}/room`}
+            className="bg-blue-600 px-4 py-2 rounded-lg text-sm"
+          >
+            🎥 Open Room
+          </Link>
+
+        </div>
+
+        <p className="text-sm text-gray-400">
+          Start Time:{" "}
+          {premiere?.startTime
+            ? new Date(premiere.startTime).toLocaleString()
+            : "Not set"}
+        </p>
+
+      </div>
+
+      {/* GENERATE TICKETS */}
+      <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
 
         <h2 className="text-lg font-semibold mb-4">
           Generate Tickets
@@ -143,6 +195,7 @@ export default function AdminPremiereDetail() {
 
       </div>
 
+      {/* TICKETS */}
       <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
 
         <h2 className="text-lg font-semibold mb-4">
