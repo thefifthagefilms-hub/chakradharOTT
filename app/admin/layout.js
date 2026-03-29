@@ -14,8 +14,6 @@ export default function AdminLayout({ children }) {
   const isLoginPage = pathname === "/admin/login";
 
   useEffect(() => {
-    // Let middleware handle authorization.
-    // Layout only waits briefly for hydration.
     const timer = setTimeout(() => {
       setLoading(false);
     }, 300);
@@ -27,6 +25,9 @@ export default function AdminLayout({ children }) {
     await fetch("/api/logout", { method: "POST" });
     router.push("/admin/login");
   };
+
+  // ✅ ACTIVE LINK FUNCTION
+  const isActive = (path) => pathname === path;
 
   if (isLoginPage) return <>{children}</>;
 
@@ -47,24 +48,50 @@ export default function AdminLayout({ children }) {
         <div>
           <h2 className="text-2xl font-bold mb-10">Admin Panel</h2>
 
-          <nav className="space-y-6 text-gray-300">
-            <Link href="/admin" className="block hover:text-white transition">
+          <nav className="space-y-4 text-sm">
+
+            <Link
+              href="/admin"
+              className={`block px-3 py-2 rounded-lg transition ${
+                isActive("/admin") ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"
+              }`}
+            >
               Dashboard
             </Link>
 
-            <Link href="/admin/movies" className="block hover:text-white transition">
+            <Link
+              href="/admin/movies"
+              className={`block px-3 py-2 rounded-lg transition ${
+                isActive("/admin/movies") ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"
+              }`}
+            >
               Movies
             </Link>
 
-            <Link href="/admin/comments" className="block hover:text-white transition">
+            <Link
+              href="/admin/comments"
+              className={`block px-3 py-2 rounded-lg transition ${
+                isActive("/admin/comments") ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"
+              }`}
+            >
               Comments
             </Link>
+
+            <Link
+              href="/admin/premieres"
+              className={`block px-3 py-2 rounded-lg transition ${
+                isActive("/admin/premieres") ? "bg-red-600/20 text-white" : "text-gray-400 hover:text-white"
+              }`}
+            >
+              🎬 Premieres
+            </Link>
+
           </nav>
         </div>
 
         <button
           onClick={handleLogout}
-          className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded transition"
+          className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded transition text-sm"
         >
           Logout
         </button>
@@ -85,22 +112,42 @@ export default function AdminLayout({ children }) {
                 <button onClick={() => setMenuOpen(false)}>✕</button>
               </div>
 
-              <nav className="space-y-6 text-gray-300">
-                <Link href="/admin" onClick={() => setMenuOpen(false)} className="block hover:text-white">
+              <nav className="space-y-4 text-sm">
+
+                <Link href="/admin" onClick={() => setMenuOpen(false)}
+                  className={`block px-3 py-2 rounded-lg ${
+                    isActive("/admin") ? "bg-white/10 text-white" : "text-gray-400"
+                  }`}>
                   Dashboard
                 </Link>
-                <Link href="/admin/movies" onClick={() => setMenuOpen(false)} className="block hover:text-white">
+
+                <Link href="/admin/movies" onClick={() => setMenuOpen(false)}
+                  className={`block px-3 py-2 rounded-lg ${
+                    isActive("/admin/movies") ? "bg-white/10 text-white" : "text-gray-400"
+                  }`}>
                   Movies
                 </Link>
-                <Link href="/admin/comments" onClick={() => setMenuOpen(false)} className="block hover:text-white">
+
+                <Link href="/admin/comments" onClick={() => setMenuOpen(false)}
+                  className={`block px-3 py-2 rounded-lg ${
+                    isActive("/admin/comments") ? "bg-white/10 text-white" : "text-gray-400"
+                  }`}>
                   Comments
                 </Link>
+
+                <Link href="/admin/premieres" onClick={() => setMenuOpen(false)}
+                  className={`block px-3 py-2 rounded-lg ${
+                    isActive("/admin/premieres") ? "bg-red-600/20 text-white" : "text-gray-400"
+                  }`}>
+                  🎬 Premieres
+                </Link>
+
               </nav>
             </div>
 
             <button
               onClick={handleLogout}
-              className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded transition"
+              className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded transition text-sm"
             >
               Logout
             </button>
