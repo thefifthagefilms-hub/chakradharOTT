@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { auth } from "../../../firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail, // ✅ NEW
+} from "firebase/auth";
 
 export default function AdminLogin() {
   const [step, setStep] = useState(1);
@@ -10,6 +13,7 @@ export default function AdminLogin() {
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(0); // ✅ NEW
 
   const allowedEmails = [
     "thefifthagefilms@gmail.com",
@@ -31,18 +35,7 @@ export default function AdminLogin() {
 
       await signInWithEmailAndPassword(auth, email, password);
 
-      const res = await fetch("/api/send-otp", {
-        method: "POST",
-        body: JSON.stringify({ email }),
-        headers: { "Content-Type": "application/json" },
-      });
-
-      const data = await res.json();
-
-      if (!data.success) {
-        alert("Failed to send OTP.");
-        return;
-      }
+      await sendOtp();
 
       setStep(2);
     } catch {
@@ -50,6 +43,35 @@ export default function AdminLogin() {
     } finally {
       setLoading(false);
     }
+  };
+
+  /* ---------------- SEND OTP (REUSABLE) ---------------- */
+
+  const sendOtp = async () => {
+    const res = await fetch("/api/send-otp", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      alert("Failed to send OTP.");
+      return;
+    }
+
+    // cooldown (30 sec)
+    setCooldown(30);
+    const interval = setInterval(() => {
+      setCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
   /* ---------------- STEP 2: OTP VERIFY ---------------- */
@@ -69,7 +91,6 @@ export default function AdminLogin() {
       const data = await res.json();
 
       if (data.success) {
-        // IMPORTANT: Force full reload so proxy reads cookie
         window.location.href = "/admin";
       } else {
         alert("Invalid or expired OTP.");
@@ -78,6 +99,22 @@ export default function AdminLogin() {
       alert("Verification failed.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  /* ---------------- FORGOT PASSWORD ---------------- */
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      alert("Enter your email first.");
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, email);
+      alert("Password reset link sent to your email.");
+    } catch {
+      alert("Failed to send reset email.");
     }
   };
 
@@ -106,7 +143,7 @@ export default function AdminLogin() {
               />
             </div>
 
-            <div className="mb-6">
+            <div className="mb-2">
               <input
                 type="password"
                 placeholder="Password"
@@ -117,21 +154,48 @@ export default function AdminLogin() {
                 required
               />
             </div>
+
+            {/* ✅ FORGOT PASSWORD */}
+            <div className="text-right mb-6">
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                className="text-xs text-gray-400 hover:text-white transition"
+              >
+                Forgot Password?
+              </button>
+            </div>
           </>
         )}
 
         {step === 2 && (
-          <div className="mb-6">
-            <input
-              type="text"
-              placeholder="Enter 6 digit OTP"
-              value={otp}
-              disabled={loading}
-              onChange={(e) => setOtp(e.target.value)}
-              className="w-full p-3 bg-zinc-800 rounded focus:outline-none focus:ring-2 focus:ring-red-600 text-center tracking-widest"
-              required
-            />
-          </div>
+          <>
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder="Enter 6 digit OTP"
+                value={otp}
+                disabled={loading}
+                onChange={(e) => setOtp(e.target.value)}
+                className="w-full p-3 bg-zinc-800 rounded focus:outline-none focus:ring-2 focus:ring-red-600 text-center tracking-widest"
+                required
+              />
+            </div>
+
+            {/* ✅ RESEND OTP */}
+            <div className="text-center mb-6">
+              <button
+                type="button"
+                disabled={cooldown > 0}
+                onClick={sendOtp}
+                className="text-xs text-gray-400 hover:text-white transition disabled:opacity-50"
+              >
+                {cooldown > 0
+                  ? `Resend OTP in ${cooldown}s`
+                  : "Resend OTP"}
+              </button>
+            </div>
+          </>
         )}
 
         <button
