@@ -26,7 +26,6 @@ export default function AdminLayout({ children }) {
     router.push("/admin/login");
   };
 
-  // ✅ ACTIVE LINK FUNCTION
   const isActive = (path) => pathname === path;
 
   if (isLoginPage) return <>{children}</>;
@@ -86,6 +85,16 @@ export default function AdminLayout({ children }) {
               🎬 Premieres
             </Link>
 
+            {/* ✅ NEW CONTACTS */}
+            <Link
+              href="/admin/contacts"
+              className={`block px-3 py-2 rounded-lg transition ${
+                isActive("/admin/contacts") ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"
+              }`}
+            >
+              📥 Contacts
+            </Link>
+
           </nav>
         </div>
 
@@ -140,6 +149,14 @@ export default function AdminLayout({ children }) {
                     isActive("/admin/premieres") ? "bg-red-600/20 text-white" : "text-gray-400"
                   }`}>
                   🎬 Premieres
+                </Link>
+
+                {/* ✅ NEW CONTACTS */}
+                <Link href="/admin/contacts" onClick={() => setMenuOpen(false)}
+                  className={`block px-3 py-2 rounded-lg ${
+                    isActive("/admin/contacts") ? "bg-white/10 text-white" : "text-gray-400"
+                  }`}>
+                  📥 Contacts
                 </Link>
 
               </nav>
