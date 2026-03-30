@@ -6,7 +6,6 @@ import {
   collection,
   getDocs,
   query,
-  where,
   orderBy,
   limit,
 } from "firebase/firestore";
@@ -62,7 +61,7 @@ function CinematicHero({ movie }) {
 }
 
 /* =========================================
-   PREMIERE ROW (NEW)
+   PREMIERE ROW
 ========================================= */
 
 function PremiereRow({ premieres }) {
@@ -70,13 +69,11 @@ function PremiereRow({ premieres }) {
 
   return (
     <section className="px-4 md:px-16 py-10">
-
       <h2 className="text-xl md:text-3xl font-semibold mb-6">
         🔴 Live Premieres
       </h2>
 
       <div className="flex gap-4 overflow-x-auto pb-4">
-
         {premieres.map((p) => (
           <Link
             key={p.id}
@@ -110,9 +107,7 @@ function PremiereRow({ premieres }) {
             </div>
           </Link>
         ))}
-
       </div>
-
     </section>
   );
 }
@@ -167,20 +162,18 @@ export default function Home() {
   const [featured, setFeatured] = useState([]);
   const [trending, setTrending] = useState([]);
   const [newReleases, setNewReleases] = useState([]);
-  const [premieres, setPremieres] = useState([]); // ✅ NEW
+  const [premieres, setPremieres] = useState([]);
 
   useEffect(() => {
     const fetchHomepage = async () => {
       try {
         const trendingQuery = query(
           collection(db, "movies"),
-          where("trending", "==", true),
           limit(12)
         );
 
         const featuredQuery = query(
           collection(db, "movies"),
-          where("featured", "==", true),
           limit(12)
         );
 
@@ -190,10 +183,8 @@ export default function Home() {
           limit(12)
         );
 
-        // ✅ LIVE PREMIERES ONLY
         const premiereQuery = query(
           collection(db, "premieres"),
-          where("status", "==", "live"),
           orderBy("startTime", "desc"),
           limit(10)
         );
@@ -205,6 +196,29 @@ export default function Home() {
             getDocs(newQuery),
             getDocs(premiereQuery),
           ]);
+
+        const now = new Date();
+
+        const premiereData = premiereSnap.docs
+          .map((doc) => {
+            const data = doc.data();
+            const start = data.startTime ? new Date(data.startTime) : null;
+            const end = data.endTime ? new Date(data.endTime) : null;
+
+            let status = "scheduled";
+
+            if (start && now >= start) status = "live";
+            if (end && now >= end) status = "ended";
+
+            return {
+              id: doc.id,
+              ...data,
+              status,
+            };
+          })
+          .filter((p) => p.status === "live"); // ONLY LIVE
+
+        setPremieres(premiereData);
 
         const trendingMovies = trendingSnap.docs.map((doc) => ({
           id: doc.id,
@@ -221,15 +235,9 @@ export default function Home() {
           ...doc.data(),
         }));
 
-        const premiereData = premiereSnap.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
         setTrending(trendingMovies);
         setFeatured(featuredMovies);
         setNewReleases(newMovies);
-        setPremieres(premiereData); // ✅ SET
 
         setHero(
           featuredMovies[0] ||
@@ -237,6 +245,7 @@ export default function Home() {
           newMovies[0] ||
           null
         );
+
       } catch (error) {
         console.error("Homepage fetch error:", error);
       }
@@ -251,7 +260,6 @@ export default function Home() {
 
       <CinematicHero movie={hero} />
 
-      {/* ✅ NEW SECTION */}
       <PremiereRow premieres={premieres} />
 
       <MovieRow title="Trending Now" movies={trending} />

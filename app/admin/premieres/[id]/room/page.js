@@ -2,7 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { db } from "@/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  collection,
+  addDoc,
+  serverTimestamp,
+  query,
+  orderBy,
+  onSnapshot,
+} from "firebase/firestore";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
@@ -13,6 +22,11 @@ export default function PremiereRoomPage() {
   const [premiere, setPremiere] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // ✅ CHAT STATES
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+
+  // FETCH PREMIERE
   useEffect(() => {
     if (!id) return;
 
@@ -31,6 +45,45 @@ export default function PremiereRoomPage() {
 
     fetchPremiere();
   }, [id]);
+
+  // ✅ REAL-TIME CHAT LISTENER
+  useEffect(() => {
+    if (!id) return;
+
+    const q = query(
+      collection(db, "premieres", id, "messages"),
+      orderBy("createdAt", "asc")
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const msgs = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setMessages(msgs);
+    });
+
+    return () => unsubscribe();
+  }, [id]);
+
+  // ✅ SEND MESSAGE
+  const sendMessage = async () => {
+    if (!input.trim() || !user) return;
+
+    try {
+      await addDoc(collection(db, "premieres", id, "messages"), {
+        text: input,
+        userId: user.uid,
+        name: user.displayName || "User",
+        photoURL: user.photoURL || "",
+        createdAt: serverTimestamp(),
+      });
+
+      setInput("");
+    } catch (err) {
+      console.error("Send message error:", err);
+    }
+  };
 
   if (!user) {
     return (
@@ -62,7 +115,6 @@ export default function PremiereRoomPage() {
       {/* HEADER */}
       <div className="px-4 md:px-16 pt-6 pb-4 border-b border-white/10">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-
           <h1 className="text-lg md:text-2xl font-semibold tracking-tight">
             {premiere.title}
           </h1>
@@ -70,7 +122,6 @@ export default function PremiereRoomPage() {
           <span className="bg-red-600 text-xs px-3 py-1 rounded-full animate-pulse">
             LIVE
           </span>
-
         </div>
       </div>
 
@@ -107,17 +158,50 @@ export default function PremiereRoomPage() {
               Live Chat
             </h2>
 
-            <div className="flex-1 overflow-y-auto text-xs text-gray-400 space-y-2">
-              <p>Chat system coming next…</p>
+            {/* MESSAGES */}
+            <div className="flex-1 overflow-y-auto space-y-3 text-sm pr-2">
+
+              {messages.map((msg) => (
+                <div key={msg.id} className="flex gap-2 items-start">
+
+                  <div className="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center text-xs">
+                    {msg.name?.[0] || "U"}
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-gray-400">
+                      {msg.name}
+                    </p>
+                    <p className="text-white">
+                      {msg.text}
+                    </p>
+                  </div>
+
+                </div>
+              ))}
+
+              {messages.length === 0 && (
+                <p className="text-gray-400 text-xs">
+                  No messages yet. Be the first to chat.
+                </p>
+              )}
+
             </div>
 
+            {/* INPUT */}
             <div className="mt-3 border-t border-white/10 pt-3 flex gap-2">
               <input
                 type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
                 placeholder="Type a message..."
-                className="flex-1 bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-xs outline-none"
+                className="flex-1 bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none"
               />
-              <button className="bg-red-600 px-4 py-2 rounded-lg text-xs">
+
+              <button
+                onClick={sendMessage}
+                className="bg-red-600 px-4 py-2 rounded-lg text-sm"
+              >
                 Send
               </button>
             </div>
