@@ -104,7 +104,7 @@ export default function AdminPremieresPage() {
               {/* TIME */}
               <p className="text-xs text-gray-500">
                 {premiere.startTime
-                  ? new Date(premiere.startTime).toLocaleString()
+                  ? premiere.startTime.toDate().toLocaleString()
                   : "No date set"}
               </p>
 
