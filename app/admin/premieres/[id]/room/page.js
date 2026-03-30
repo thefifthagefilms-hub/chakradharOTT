@@ -11,6 +11,7 @@ import {
   query,
   orderBy,
   onSnapshot,
+  updateDoc,
 } from "firebase/firestore";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -22,9 +23,10 @@ export default function PremiereRoomPage() {
   const [premiere, setPremiere] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // ✅ CHAT STATES
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
+  const [lastSent, setLastSent] = useState(0);
+  const [pinned, setPinned] = useState(null);
 
   // FETCH PREMIERE
   useEffect(() => {
@@ -37,7 +39,7 @@ export default function PremiereRoomPage() {
           setPremiere({ id: snap.id, ...snap.data() });
         }
       } catch (error) {
-        console.error("Error fetching premiere:", error);
+        console.error(error);
       } finally {
         setLoading(false);
       }
@@ -46,7 +48,7 @@ export default function PremiereRoomPage() {
     fetchPremiere();
   }, [id]);
 
-  // ✅ REAL-TIME CHAT LISTENER
+  // REALTIME CHAT
   useEffect(() => {
     if (!id) return;
 
@@ -60,51 +62,75 @@ export default function PremiereRoomPage() {
         id: doc.id,
         ...doc.data(),
       }));
+
       setMessages(msgs);
+
+      // pinned message (latest pinned)
+      const pin = msgs.find((m) => m.pinned);
+      setPinned(pin || null);
     });
 
     return () => unsubscribe();
   }, [id]);
 
-  // ✅ SEND MESSAGE
+  // SEND MESSAGE (ANTI-SPAM)
   const sendMessage = async () => {
     if (!input.trim() || !user) return;
 
-    try {
-      await addDoc(collection(db, "premieres", id, "messages"), {
-        text: input,
-        userId: user.uid,
-        name: user.displayName || "User",
-        photoURL: user.photoURL || "",
-        createdAt: serverTimestamp(),
-      });
+    const now = Date.now();
 
-      setInput("");
-    } catch (err) {
-      console.error("Send message error:", err);
+    if (now - lastSent < 2000) {
+      alert("Slow down…");
+      return;
     }
+
+    setLastSent(now);
+
+    await addDoc(collection(db, "premieres", id, "messages"), {
+      text: input,
+      userId: user.uid,
+      name: user.displayName || "User",
+      photoURL: user.photoURL || "",
+      isAdmin: user.email === "youradmin@email.com", // ⚠️ CHANGE THIS
+      createdAt: serverTimestamp(),
+      pinned: false,
+    });
+
+    setInput("");
+  };
+
+  // PIN MESSAGE (ADMIN ONLY)
+  const pinMessage = async (msgId) => {
+    if (!user?.email) return;
+
+    // remove old pins
+    const oldPinned = messages.filter((m) => m.pinned);
+    for (let m of oldPinned) {
+      await updateDoc(
+        doc(db, "premieres", id, "messages", m.id),
+        { pinned: false }
+      );
+    }
+
+    // set new pin
+    await updateDoc(
+      doc(db, "premieres", id, "messages", msgId),
+      { pinned: true }
+    );
   };
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#0B0B0F] text-white flex items-center justify-center text-sm">
-        Login required to join the premiere.
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        Login required.
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0B0B0F] text-white flex items-center justify-center text-sm">
-        Loading Room...
-      </div>
-    );
-  }
-
-  if (!premiere) {
-    return (
-      <div className="min-h-screen bg-[#0B0B0F] text-white flex items-center justify-center text-sm">
-        Premiere not found.
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        Loading...
       </div>
     );
   }
@@ -113,99 +139,81 @@ export default function PremiereRoomPage() {
     <div className="min-h-screen bg-[#0B0B0F] text-white">
 
       {/* HEADER */}
-      <div className="px-4 md:px-16 pt-6 pb-4 border-b border-white/10">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <h1 className="text-lg md:text-2xl font-semibold tracking-tight">
-            {premiere.title}
-          </h1>
-
-          <span className="bg-red-600 text-xs px-3 py-1 rounded-full animate-pulse">
-            LIVE
-          </span>
-        </div>
+      <div className="px-4 md:px-16 py-4 border-b border-white/10 flex justify-between">
+        <h1 className="text-lg md:text-xl">{premiere.title}</h1>
+        <span className="bg-red-600 px-3 py-1 text-xs rounded-full animate-pulse">
+          LIVE
+        </span>
       </div>
 
-      {/* MAIN */}
-      <div className="px-4 md:px-16 py-6 max-w-7xl mx-auto">
+      <div className="grid lg:grid-cols-3 gap-6 p-4 md:px-16">
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* VIDEO */}
+        <div className="lg:col-span-2">
+          <div className="aspect-video bg-black rounded-2xl overflow-hidden">
+            {premiere.embedLink ? (
+              <iframe src={premiere.embedLink} className="w-full h-full" />
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-400">
+                Waiting for stream...
+              </div>
+            )}
+          </div>
+        </div>
 
-          {/* VIDEO */}
-          <div className="lg:col-span-2">
-            <div className="rounded-2xl overflow-hidden border border-white/10 bg-black shadow-lg">
-              <div className="aspect-video">
+        {/* CHAT */}
+        <div className="bg-white/5 rounded-2xl p-4 flex flex-col h-[500px]">
 
-                {premiere.embedLink ? (
-                  <iframe
-                    src={premiere.embedLink}
-                    className="w-full h-full"
-                    allowFullScreen
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-                    Live Stream Will Start Soon
-                  </div>
+          <h2 className="mb-2 text-sm font-semibold">Live Chat</h2>
+
+          {/* PINNED */}
+          {pinned && (
+            <div className="bg-yellow-600/20 border border-yellow-600 text-xs p-2 rounded mb-2">
+              📌 {pinned.name}: {pinned.text}
+            </div>
+          )}
+
+          {/* MESSAGES */}
+          <div className="flex-1 overflow-y-auto space-y-3 text-sm">
+
+            {messages.map((msg) => (
+              <div key={msg.id} className="flex justify-between">
+
+                <div className={`${msg.isAdmin ? "text-yellow-400" : ""}`}>
+                  <span className="text-xs text-gray-400">
+                    {msg.name}
+                  </span>
+                  <p>{msg.text}</p>
+                </div>
+
+                {user.email === "thefifthagefilms@gmail.com" && (
+                  <button
+                    onClick={() => pinMessage(msg.id)}
+                    className="text-xs text-gray-400"
+                  >
+                    📌
+                  </button>
                 )}
 
               </div>
-            </div>
+            ))}
+
           </div>
 
-          {/* CHAT PANEL */}
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col h-[400px] lg:h-auto">
-
-            <h2 className="text-sm font-semibold mb-3">
-              Live Chat
-            </h2>
-
-            {/* MESSAGES */}
-            <div className="flex-1 overflow-y-auto space-y-3 text-sm pr-2">
-
-              {messages.map((msg) => (
-                <div key={msg.id} className="flex gap-2 items-start">
-
-                  <div className="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center text-xs">
-                    {msg.name?.[0] || "U"}
-                  </div>
-
-                  <div>
-                    <p className="text-xs text-gray-400">
-                      {msg.name}
-                    </p>
-                    <p className="text-white">
-                      {msg.text}
-                    </p>
-                  </div>
-
-                </div>
-              ))}
-
-              {messages.length === 0 && (
-                <p className="text-gray-400 text-xs">
-                  No messages yet. Be the first to chat.
-                </p>
-              )}
-
-            </div>
-
-            {/* INPUT */}
-            <div className="mt-3 border-t border-white/10 pt-3 flex gap-2">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Type a message..."
-                className="flex-1 bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm outline-none"
-              />
-
-              <button
-                onClick={sendMessage}
-                className="bg-red-600 px-4 py-2 rounded-lg text-sm"
-              >
-                Send
-              </button>
-            </div>
-
+          {/* INPUT */}
+          <div className="mt-2 flex gap-2">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              className="flex-1 bg-white/10 px-3 py-2 rounded text-sm"
+              placeholder="Type..."
+            />
+            <button
+              onClick={sendMessage}
+              className="bg-red-600 px-4 rounded text-sm"
+            >
+              Send
+            </button>
           </div>
 
         </div>

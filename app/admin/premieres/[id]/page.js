@@ -25,7 +25,7 @@ export default function AdminPremiereDetail() {
   const [premiere, setPremiere] = useState(null);
   const [tickets, setTickets] = useState([]);
   const [ticketCount, setTicketCount] = useState(5);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   /* Fetch Data */
   useEffect(() => {
@@ -48,21 +48,23 @@ export default function AdminPremiereDetail() {
           ...doc.data(),
         }))
       );
-
-      setLoading(false);
     };
 
     fetchData();
   }, [id]);
 
-  /* 🔴 STATUS CONTROL */
+  /* STATUS CONTROL */
   const updateStatus = async (status) => {
     await updateDoc(doc(db, "premieres", id), { status });
     setPremiere((prev) => ({ ...prev, status }));
   };
 
-  /* Generate Tickets */
+  /* GENERATE TICKETS */
   const handleGenerate = async () => {
+    if (!ticketCount || ticketCount < 1) return;
+
+    setLoading(true);
+
     for (let i = 0; i < ticketCount; i++) {
       const code = generateTicketCode();
 
@@ -86,9 +88,11 @@ export default function AdminPremiereDetail() {
         ...doc.data(),
       }))
     );
+
+    setLoading(false);
   };
 
-  /* Toggle Used */
+  /* TOGGLE USED */
   const toggleUsed = async (ticketId, currentStatus) => {
     await updateDoc(
       doc(db, "premieres", id, "tickets", ticketId),
@@ -106,32 +110,40 @@ export default function AdminPremiereDetail() {
     );
   };
 
-  if (loading) {
+  /* COPY TICKET */
+  const copyTicket = (code) => {
+    navigator.clipboard.writeText(code);
+    alert("Copied: " + code);
+  };
+
+  if (!premiere) {
     return <div className="p-10 text-white">Loading...</div>;
   }
 
   return (
-    <div className="p-6 md:p-10 text-white space-y-8">
+    <div className="p-6 md:p-10 text-white space-y-8 bg-[#0B0B0F] min-h-screen">
 
-      {/* TITLE */}
-      <h1 className="text-2xl md:text-3xl font-bold">
-        {premiere?.title}
-      </h1>
+      {/* HEADER */}
+      <div className="flex justify-between items-center flex-wrap gap-4">
+        <h1 className="text-2xl md:text-3xl font-bold">
+          {premiere.title}
+        </h1>
 
-      {/* STATUS + CONTROLS */}
+        <span className={`text-xs px-3 py-1 rounded-full ${
+          premiere.status === "live"
+            ? "bg-red-600"
+            : premiere.status === "ended"
+            ? "bg-gray-600"
+            : "bg-yellow-600"
+        }`}>
+          {premiere.status || "scheduled"}
+        </span>
+      </div>
+
+      {/* CONTROLS */}
       <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4">
 
-        <div className="flex items-center gap-4 flex-wrap">
-
-          <span className={`text-xs px-3 py-1 rounded-full ${
-            premiere?.status === "live"
-              ? "bg-red-600"
-              : premiere?.status === "ended"
-              ? "bg-gray-600"
-              : "bg-yellow-600"
-          }`}>
-            {premiere?.status || "scheduled"}
-          </span>
+        <div className="flex gap-3 flex-wrap">
 
           <button
             onClick={() => updateStatus("live")}
@@ -151,28 +163,28 @@ export default function AdminPremiereDetail() {
             href={`/admin/premieres/${id}/room`}
             className="bg-blue-600 px-4 py-2 rounded-lg text-sm"
           >
-            🎥 Open Room
+            🎥 Room
           </Link>
 
         </div>
 
         <p className="text-sm text-gray-400">
           Start Time:{" "}
-          {premiere?.startTime
+          {premiere.startTime
             ? new Date(premiere.startTime).toLocaleString()
             : "Not set"}
         </p>
 
       </div>
 
-      {/* GENERATE TICKETS */}
+      {/* GENERATE */}
       <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
 
         <h2 className="text-lg font-semibold mb-4">
           Generate Tickets
         </h2>
 
-        <div className="flex gap-4">
+        <div className="flex gap-4 items-center">
 
           <input
             type="number"
@@ -186,9 +198,9 @@ export default function AdminPremiereDetail() {
 
           <button
             onClick={handleGenerate}
-            className="bg-red-600 px-5 py-3 rounded-full hover:bg-red-700 transition"
+            className="bg-red-600 px-5 py-3 rounded-full"
           >
-            Generate
+            {loading ? "Generating..." : "Generate"}
           </button>
 
         </div>
@@ -223,14 +235,26 @@ export default function AdminPremiereDetail() {
                 {ticket.code}
               </p>
 
-              <button
-                onClick={() =>
-                  toggleUsed(ticket.id, ticket.used)
-                }
-                className="text-xs bg-white/10 px-3 py-1 rounded"
-              >
-                {ticket.used ? "Mark Unused" : "Mark Used"}
-              </button>
+              <div className="flex gap-2">
+
+                <button
+                  onClick={() =>
+                    toggleUsed(ticket.id, ticket.used)
+                  }
+                  className="text-xs bg-white/10 px-3 py-1 rounded"
+                >
+                  {ticket.used ? "Unused" : "Used"}
+                </button>
+
+                <button
+                  onClick={() => copyTicket(ticket.code)}
+                  className="text-xs bg-blue-600 px-3 py-1 rounded"
+                >
+                  Copy
+                </button>
+
+              </div>
+
             </div>
           ))}
 
