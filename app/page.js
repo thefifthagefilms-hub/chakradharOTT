@@ -19,13 +19,7 @@ function CinematicHero({ movie }) {
   const fallback =
     "https://images.unsplash.com/photo-1524985069026-dd778a71c7b4";
 
-  if (!movie) {
-    return (
-      <div className="h-[70vh] flex items-center justify-center text-gray-400">
-        No Featured Content
-      </div>
-    );
-  }
+  if (!movie) return null; // ✅ FIXED (no flicker)
 
   const image = movie.bannerImage || movie.posterImage || fallback;
 
@@ -76,7 +70,6 @@ function PremiereRow({ premieres }) {
         {premieres.map((p) => (
           <Link key={p.id} href={`/premiere/${p.id}/join`}>
             <div className="min-w-[240px] relative h-[160px] rounded-2xl overflow-hidden bg-black border border-white/10">
-
               <div className="absolute inset-0 bg-gradient-to-br from-red-600/40 to-black" />
 
               <div className="absolute inset-0 p-4 flex flex-col justify-between">
@@ -88,7 +81,6 @@ function PremiereRow({ premieres }) {
                   {p.title}
                 </h3>
               </div>
-
             </div>
           </Link>
         ))}
@@ -143,6 +135,7 @@ export default function Home() {
   const [trending, setTrending] = useState([]);
   const [newReleases, setNewReleases] = useState([]);
   const [premieres, setPremieres] = useState([]);
+  const [loading, setLoading] = useState(true); // ✅ NEW
 
   useEffect(() => {
     const fetchData = async () => {
@@ -230,11 +223,23 @@ export default function Home() {
 
       } catch (err) {
         console.error("Homepage error:", err);
+      } finally {
+        setLoading(false); // ✅ FIXED
       }
     };
 
     fetchData();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="bg-[#0B0B0F] text-white min-h-screen flex items-center justify-center">
+        <p className="text-gray-400 text-sm">
+          Loading cinematic experience...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-[#0B0B0F] text-white min-h-screen">
