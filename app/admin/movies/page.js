@@ -8,6 +8,7 @@ import {
   deleteDoc,
   doc,
   updateDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 import Link from "next/link";
 
@@ -18,42 +19,70 @@ export default function MoviesManagement() {
   useEffect(() => {
     const fetchMovies = async () => {
       const snapshot = await getDocs(collection(db, "movies"));
-      const movieList = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
+      const movieList = snapshot.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
       }));
       setMovies(movieList);
       setLoading(false);
     };
-
     fetchMovies();
   }, []);
 
   const handleDelete = async (id) => {
-    const confirmDelete = confirm(
-      "Are you sure you want to delete this movie?"
-    );
+    const confirmDelete = confirm("Are you sure you want to delete this movie?");
     if (!confirmDelete) return;
 
     await deleteDoc(doc(db, "movies", id));
-
-    setMovies((prev) =>
-      prev.filter((movie) => movie.id !== id)
-    );
+    setMovies((prev) => prev.filter((m) => m.id !== id));
   };
 
+  /* 🔁 Generic toggle for any field (isFeatured, isTrending) */
   const toggleField = async (id, field, currentValue) => {
-    await updateDoc(doc(db, "movies", id), {
-      [field]: !currentValue,
-    });
+    try {
+      await updateDoc(doc(db, "movies", id), {
+        [field]: !currentValue,
+        // ensure releaseDate exists/updates for sorting if needed
+        releaseDate: serverTimestamp(),
+      });
 
-    setMovies((prev) =>
-      prev.map((movie) =>
-        movie.id === id
-          ? { ...movie, [field]: !currentValue }
-          : movie
-      )
-    );
+      setMovies((prev) =>
+        prev.map((m) =>
+          m.id === id ? { ...m, [field]: !currentValue } : m
+        )
+      );
+    } catch (e) {
+      console.error("Toggle error:", e);
+    }
+  };
+
+  /* ⭐ HERO: enforce single hero */
+  const setHeroMovie = async (id) => {
+    try {
+      const snapshot = await getDocs(collection(db, "movies"));
+
+      // remove hero from all
+      const clears = snapshot.docs.map((d) =>
+        updateDoc(doc(db, "movies", d.id), { isHero: false })
+      );
+      await Promise.all(clears);
+
+      // set selected as hero + update releaseDate
+      await updateDoc(doc(db, "movies", id), {
+        isHero: true,
+        releaseDate: serverTimestamp(),
+      });
+
+      // update UI
+      setMovies((prev) =>
+        prev.map((m) => ({
+          ...m,
+          isHero: m.id === id,
+        }))
+      );
+    } catch (e) {
+      console.error("Hero update error:", e);
+    }
   };
 
   return (
@@ -73,7 +102,7 @@ export default function MoviesManagement() {
         </Link>
       </div>
 
-      {/* MOVIE LIST */}
+      {/* LIST */}
       <div className="space-y-6">
 
         {loading && (
@@ -96,13 +125,11 @@ export default function MoviesManagement() {
 
             {/* TITLE + ACTIONS */}
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-
               <h2 className="text-lg md:text-xl font-semibold">
                 {movie.title}
               </h2>
 
               <div className="flex flex-wrap gap-2">
-
                 <Link
                   href={`/admin/movies/edit/${movie.id}`}
                   className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-xs md:text-sm"
@@ -130,46 +157,52 @@ export default function MoviesManagement() {
                 >
                   Delete
                 </button>
-
               </div>
-
             </div>
 
             {/* STATUS TOGGLES */}
             <div className="flex flex-wrap gap-4 text-sm">
 
+              {/* ⭐ HERO */}
               <button
-                onClick={() =>
-                  toggleField(
-                    movie.id,
-                    "featured",
-                    movie.featured
-                  )
-                }
+                onClick={() => setHeroMovie(movie.id)}
                 className={`px-4 py-1 rounded-full text-xs font-medium ${
-                  movie.featured
-                    ? "bg-green-700"
-                    : "bg-zinc-700"
+                  movie.isHero ? "bg-red-600" : "bg-zinc-700"
                 }`}
               >
-                Featured
+                ⭐ Hero
               </button>
 
+              {/* 🔥 TRENDING */}
               <button
                 onClick={() =>
                   toggleField(
                     movie.id,
-                    "trending",
-                    movie.trending
+                    "isTrending",
+                    !!movie.isTrending
                   )
                 }
                 className={`px-4 py-1 rounded-full text-xs font-medium ${
-                  movie.trending
-                    ? "bg-green-700"
-                    : "bg-zinc-700"
+                  movie.isTrending ? "bg-green-700" : "bg-zinc-700"
                 }`}
               >
                 Trending
+              </button>
+
+              {/* 🎯 FEATURED */}
+              <button
+                onClick={() =>
+                  toggleField(
+                    movie.id,
+                    "isFeatured",
+                    !!movie.isFeatured
+                  )
+                }
+                className={`px-4 py-1 rounded-full text-xs font-medium ${
+                  movie.isFeatured ? "bg-green-700" : "bg-zinc-700"
+                }`}
+              >
+                Featured
               </button>
 
             </div>
@@ -178,7 +211,6 @@ export default function MoviesManagement() {
         ))}
 
       </div>
-
     </div>
   );
 }
