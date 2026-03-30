@@ -30,17 +30,16 @@ export default function ProfilePage() {
   const [comments, setComments] = useState([]);
   const [ratings, setRatings] = useState([]);
   const [watchHistory, setWatchHistory] = useState([]);
+  const [tickets, setTickets] = useState([]); // ✅ NEW
 
-  /* ---------- Redirect ---------- */
-
+  /* Redirect */
   useEffect(() => {
     if (user === null) {
       router.push("/login");
     }
   }, [user, router]);
 
-  /* ---------- Fetch Wishlist ---------- */
-
+  /* Wishlist */
   useEffect(() => {
     if (!user) return;
 
@@ -60,8 +59,7 @@ export default function ProfilePage() {
     fetchWishlist();
   }, [user]);
 
-  /* ---------- Fetch Activity ---------- */
-
+  /* Activity */
   useEffect(() => {
     if (!user) return;
 
@@ -86,8 +84,27 @@ export default function ProfilePage() {
     fetchActivity();
   }, [user]);
 
-  /* ---------- Delete Account ---------- */
+  /* ✅ FETCH TICKETS */
+  useEffect(() => {
+    if (!user) return;
 
+    const fetchTickets = async () => {
+      const snap = await getDocs(
+        collection(db, "users", user.uid, "tickets")
+      );
+
+      setTickets(
+        snap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }))
+      );
+    };
+
+    fetchTickets();
+  }, [user]);
+
+  /* Delete Account */
   const handleDeleteAccount = async () => {
     try {
       if (user.providerData[0].providerId === "password") {
@@ -151,7 +168,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="space-y-3 text-sm">
-            {["overview", "activity", "wishlist", "security"].map(tab => (
+            {["overview", "activity", "wishlist", "tickets", "security"].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -185,80 +202,63 @@ export default function ProfilePage() {
           </div>
         )}
 
+        {activeTab === "tickets" && (
+          <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
+            <h2 className="text-xl font-bold mb-4">🎟 My Tickets</h2>
+
+            {tickets.length === 0 && (
+              <p className="text-gray-400">No tickets yet.</p>
+            )}
+
+            <div className="space-y-4">
+              {tickets.map((t) => (
+                <div
+                  key={t.id}
+                  className="p-4 rounded-xl border border-white/10 bg-white/5"
+                >
+                  <p className="font-semibold">{t.title}</p>
+                  <p className="text-sm text-gray-400">
+                    Code: {t.ticketCode}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {activeTab === "activity" && (
           <div className="bg-white/5 p-6 rounded-2xl border border-white/10 space-y-6">
             <h2 className="text-xl font-bold">Activity</h2>
 
             <div>
               <h3 className="font-semibold mb-2">Recently Watched</h3>
-              {watchHistory.length === 0 && <p>No watch history yet.</p>}
               {watchHistory.map((w, i) => (
-                <p key={i} className="text-sm text-gray-300">
-                  {w.movieId}
-                </p>
+                <p key={i}>{w.movieId}</p>
               ))}
             </div>
 
             <div>
               <h3 className="font-semibold mb-2">My Comments</h3>
-              {comments.length === 0 && <p>No comments yet.</p>}
               {comments.map((c, i) => (
-                <p key={i} className="text-sm text-gray-300">
-                  {c.comment}
-                </p>
+                <p key={i}>{c.comment}</p>
               ))}
             </div>
 
-            <div>
-              <h3 className="font-semibold mb-2">My Ratings</h3>
-              {ratings.length === 0 && <p>No ratings yet.</p>}
-              {ratings.map((r, i) => (
-                <p key={i} className="text-sm text-gray-300">
-                  Rated: {r.rating} / 5
-                </p>
-              ))}
-            </div>
           </div>
         )}
 
         {activeTab === "wishlist" && (
           <div>
             <h2 className="text-xl font-bold mb-6">My List</h2>
-
-            {wishlist.length === 0 && (
-              <p className="text-gray-400">
-                You haven’t added any movies yet.
-              </p>
-            )}
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {wishlist.map((movie) => (
-                <Link
-                  key={movie.id}
-                  href={`/movie/${movie.movieId}`}
-                  className="group"
-                >
-                  <div className="relative aspect-[2/3] overflow-hidden rounded-2xl shadow-xl transition-all duration-500 group-hover:scale-[1.05]">
-
-                    <Image
-                      src={movie.posterImage || "/homepage-banner.jpg"}
-                      alt={movie.title}
-                      fill
-                      sizes="300px"
-                      className="object-cover transition duration-500 group-hover:scale-110"
-                    />
-
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                      <span className="bg-red-600 px-4 py-2 rounded-full text-xs md:text-sm font-medium shadow-lg">
-                        ▶ Watch
-                      </span>
-                    </div>
-
-                  </div>
-
-                  <p className="mt-3 text-sm md:text-base text-gray-300 group-hover:text-white transition line-clamp-1">
-                    {movie.title}
-                  </p>
+                <Link key={movie.id} href={`/movie/${movie.movieId}`}>
+                  <Image
+                    src={movie.posterImage}
+                    alt={movie.title}
+                    width={200}
+                    height={300}
+                  />
                 </Link>
               ))}
             </div>
