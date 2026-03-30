@@ -42,14 +42,14 @@ export default function JoinPremierePage() {
     fetchPremiere();
   }, [id]);
 
-  /* 🔓 AUTO ENTRY (OPEN PREMIERE) */
+  /* 🔓 AUTO ENTRY */
   useEffect(() => {
     if (!loading && premiere && !premiere.ticketRequired && id) {
       router.push(`/premiere/${id}/room`);
     }
   }, [loading, premiere, id, router]);
 
-  /* 🎟 VALIDATE TICKET */
+  /* 🎟 VALIDATE FREE TICKET */
   const handleJoin = async () => {
     if (!ticket) {
       setError("Enter ticket code");
@@ -72,14 +72,12 @@ export default function JoinPremierePage() {
         return;
       }
 
-      // ✅ mark ticket used
       await updateDoc(ticketRef, {
         used: true,
         usedBy: user.uid,
         usedAt: new Date(),
       });
 
-      // ✅ STORE IN USER PROFILE
       await setDoc(
         doc(db, "users", user.uid, "tickets", ticket),
         {
@@ -97,7 +95,58 @@ export default function JoinPremierePage() {
     }
   };
 
-  /* AUTH CHECK */
+  /* 💰 RAZORPAY PAYMENT */
+  const handlePayment = async () => {
+    try {
+      const res = await fetch("/api/razorpay/order", {
+        method: "POST",
+        body: JSON.stringify({
+          amount: premiere.ticketPrice,
+        }),
+      });
+
+      const order = await res.json();
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY,
+        amount: order.amount,
+        currency: "INR",
+        order_id: order.id,
+
+        handler: async function (response) {
+          const verify = await fetch("/api/razorpay/verify", {
+            method: "POST",
+            body: JSON.stringify({
+              ...response,
+              userId: user.uid,
+              premiereId: id,
+              title: premiere.title,
+            }),
+          });
+
+          const data = await verify.json();
+
+          if (data.success) {
+            router.push(`/premiere/${id}/room`);
+          } else {
+            alert("Payment verification failed");
+          }
+        },
+
+        theme: {
+          color: "#dc2626",
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err) {
+      console.error(err);
+      alert("Payment failed");
+    }
+  };
+
+  /* AUTH */
   if (!user) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
@@ -106,7 +155,6 @@ export default function JoinPremierePage() {
     );
   }
 
-  /* LOADING */
   if (loading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
@@ -115,7 +163,6 @@ export default function JoinPremierePage() {
     );
   }
 
-  /* NOT FOUND */
   if (!premiere) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
@@ -124,12 +171,13 @@ export default function JoinPremierePage() {
     );
   }
 
-  /* 💰 PAID PREMIERE (PLACEHOLDER) */
+  /* 💰 PAID PREMIERE */
   if (premiere.paymentRequired) {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-4">
+
         <h1 className="text-xl font-semibold">
-          This is a Paid Premiere
+          Paid Premiere
         </h1>
 
         <p className="text-gray-400 text-sm">
@@ -138,15 +186,16 @@ export default function JoinPremierePage() {
 
         <button
           className="bg-red-600 px-6 py-3 rounded-lg"
-          onClick={() => alert("Payment integration coming next")}
+          onClick={handlePayment}
         >
           Buy Ticket
         </button>
+
       </div>
     );
   }
 
-  /* 🎟 TICKET ENTRY UI */
+  /* 🎟 FREE TICKET UI */
   return (
     <div className="min-h-screen bg-[#0B0B0F] text-white flex items-center justify-center px-4">
 

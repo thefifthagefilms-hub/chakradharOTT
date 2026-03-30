@@ -20,26 +20,29 @@ export default function AdminDashboard() {
     views: 0,
   });
 
+  // ✅ NEW REVENUE STATE
+  const [revenueStats, setRevenueStats] = useState({
+    tickets: 0,
+    revenue: 0,
+  });
+
   const [recentComments, setRecentComments] = useState([]);
   const [latestMovie, setLatestMovie] = useState(null);
   const [adminEmail, setAdminEmail] = useState("");
   const [sessionTimeLeft, setSessionTimeLeft] = useState(1800);
   const [loading, setLoading] = useState(true);
 
-  /* ---------------- AUTH SUBSCRIPTION ---------------- */
-
+  /* ---------------- AUTH ---------------- */
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user?.email) {
         setAdminEmail(user.email);
       }
     });
-
     return () => unsubscribe();
   }, []);
 
-  /* ---------------- FETCH DASHBOARD DATA ---------------- */
-
+  /* ---------------- FETCH DATA ---------------- */
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -59,6 +62,26 @@ export default function AdminDashboard() {
           views: totalViews,
         });
 
+        // 🎬 PREMIERE REVENUE DATA
+        const premiereSnap = await getDocs(collection(db, "premieres"));
+
+        let totalRevenue = 0;
+        let totalTickets = 0;
+
+        premiereSnap.forEach((doc) => {
+          const data = doc.data();
+          const sold = data.ticketsSold || 0;
+          const price = data.ticketPrice || 0;
+
+          totalTickets += sold;
+          totalRevenue += sold * price;
+        });
+
+        setRevenueStats({
+          tickets: totalTickets,
+          revenue: totalRevenue,
+        });
+
         // Latest movie
         const latestMovieQuery = query(
           collection(db, "movies"),
@@ -67,7 +90,6 @@ export default function AdminDashboard() {
         );
 
         const latestMovieSnap = await getDocs(latestMovieQuery);
-
         if (!latestMovieSnap.empty) {
           setLatestMovie(latestMovieSnap.docs[0].data());
         }
@@ -80,9 +102,7 @@ export default function AdminDashboard() {
         );
 
         const recentSnap = await getDocs(recentCommentsQuery);
-
-        const recentList = recentSnap.docs.map((doc) => doc.data());
-        setRecentComments(recentList);
+        setRecentComments(recentSnap.docs.map((doc) => doc.data()));
 
       } catch (error) {
         console.error("Dashboard fetch error:", error);
@@ -94,14 +114,10 @@ export default function AdminDashboard() {
     fetchData();
   }, []);
 
-  /* ---------------- SESSION COUNTDOWN ---------------- */
-
+  /* ---------------- SESSION ---------------- */
   useEffect(() => {
     const timer = setInterval(() => {
-      setSessionTimeLeft((prev) => {
-        if (prev <= 1) return 0;
-        return prev - 1;
-      });
+      setSessionTimeLeft((prev) => (prev <= 1 ? 0 : prev - 1));
     }, 1000);
 
     return () => clearInterval(timer);
@@ -117,21 +133,17 @@ export default function AdminDashboard() {
     <div className="space-y-12">
 
       {/* HEADER */}
-      <motion.div
-        initial={{ opacity: 0, y: 25 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
+      <motion.div initial={{ opacity: 0, y: 25 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-3xl md:text-5xl font-bold">
           Admin Dashboard
         </h1>
         <p className="text-gray-400 mt-3">
-          Platform intelligence & live activity
+          Platform intelligence & revenue insights
         </p>
       </motion.div>
 
-      {/* SESSION PANEL */}
+      {/* SESSION */}
       <div className="bg-gradient-to-r from-green-600/10 to-emerald-600/10 border border-green-500/20 p-5 rounded-xl flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-
         <div>
           <p className="text-sm text-gray-400">Logged in as</p>
           <p className="font-semibold">{adminEmail || "Admin"}</p>
@@ -147,10 +159,9 @@ export default function AdminDashboard() {
         <div className="text-green-400 font-semibold text-sm">
           ● Secure Session Active
         </div>
-
       </div>
 
-      {/* STATS GRID */}
+      {/* MAIN STATS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
         <StatCard title="Total Movies" value={stats.movies} loading={loading} />
         <StatCard title="Total Ratings" value={stats.ratings} loading={loading} />
@@ -158,31 +169,44 @@ export default function AdminDashboard() {
         <StatCard title="Total Views" value={stats.views} loading={loading} />
       </div>
 
-      {/* ACTIVITY SECTION */}
+      {/* 💰 REVENUE SECTION */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <StatCard
+          title="Tickets Sold"
+          value={revenueStats.tickets}
+          loading={loading}
+        />
+        <StatCard
+          title="Total Revenue"
+          value={`₹${revenueStats.revenue}`}
+          loading={loading}
+        />
+      </div>
+
+      {/* ACTIVITY */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-        {/* Latest Movie */}
         <div className="bg-zinc-900/80 border border-white/10 p-6 rounded-2xl">
           <h2 className="text-lg font-semibold mb-4">
             Latest Uploaded Movie
           </h2>
           {latestMovie ? (
-            <div>
+            <>
               <p className="font-semibold">{latestMovie.title}</p>
               <p className="text-gray-400 text-sm mt-1">
                 {latestMovie.genre || "No genre"}
               </p>
-            </div>
+            </>
           ) : (
             <p className="text-gray-500 text-sm">No data</p>
           )}
         </div>
 
-        {/* Recent Comments */}
         <div className="bg-zinc-900/80 border border-white/10 p-6 rounded-2xl">
           <h2 className="text-lg font-semibold mb-4">
             Recent Comments
           </h2>
+
           {recentComments.length === 0 ? (
             <p className="text-gray-500 text-sm">No recent comments</p>
           ) : (
@@ -206,7 +230,6 @@ export default function AdminDashboard() {
 }
 
 /* ---------- STAT CARD ---------- */
-
 function StatCard({ title, value, loading }) {
   return (
     <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-white/10 p-6 rounded-2xl shadow-lg hover:shadow-2xl transition duration-300">
@@ -218,7 +241,7 @@ function StatCard({ title, value, loading }) {
         <div className="h-8 w-24 bg-zinc-700 rounded animate-pulse" />
       ) : (
         <p className="text-3xl font-bold">
-          {value.toLocaleString()}
+          {value}
         </p>
       )}
     </div>

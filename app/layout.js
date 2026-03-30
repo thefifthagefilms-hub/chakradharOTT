@@ -2,6 +2,7 @@ import "./globals.css";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { AuthProvider } from "@/context/AuthContext";
+import Script from "next/script";
 
 export const metadata = {
   title: "Chakradhar OTT Platform",
@@ -12,6 +13,13 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="bg-black text-white min-h-screen flex flex-col">
+
+        {/* ✅ RAZORPAY SCRIPT */}
+        <Script
+          src="https://checkout.razorpay.com/v1/checkout.js"
+          strategy="beforeInteractive"
+        />
+
         <AuthProvider>
           <Navbar />
           <main className="flex-grow pt-24">
@@ -19,6 +27,7 @@ export default function RootLayout({ children }) {
           </main>
           <Footer />
         </AuthProvider>
+
       </body>
     </html>
   );
