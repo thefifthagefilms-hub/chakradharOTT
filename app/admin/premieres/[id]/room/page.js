@@ -12,6 +12,8 @@ import {
   orderBy,
   onSnapshot,
   updateDoc,
+  setDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -27,6 +29,9 @@ export default function PremiereRoomPage() {
   const [input, setInput] = useState("");
   const [lastSent, setLastSent] = useState(0);
   const [pinned, setPinned] = useState(null);
+
+  // ✅ NEW: LIVE VIEWERS
+  const [viewerCount, setViewerCount] = useState(0);
 
   // FETCH PREMIERE
   useEffect(() => {
@@ -48,6 +53,35 @@ export default function PremiereRoomPage() {
     fetchPremiere();
   }, [id]);
 
+  // ✅ LIVE VIEWER JOIN (NO DUPLICATES)
+  useEffect(() => {
+    if (!user || !id) return;
+
+    const viewerRef = doc(db, "premieres", id, "viewers", user.uid);
+
+    setDoc(viewerRef, {
+      userId: user.uid,
+      joinedAt: new Date(),
+    });
+
+    return () => {
+      deleteDoc(viewerRef);
+    };
+  }, [user, id]);
+
+  // ✅ LIVE VIEWER COUNT
+  useEffect(() => {
+    if (!id) return;
+
+    const viewersRef = collection(db, "premieres", id, "viewers");
+
+    const unsub = onSnapshot(viewersRef, (snap) => {
+      setViewerCount(snap.size);
+    });
+
+    return () => unsub();
+  }, [id]);
+
   // REALTIME CHAT
   useEffect(() => {
     if (!id) return;
@@ -65,7 +99,6 @@ export default function PremiereRoomPage() {
 
       setMessages(msgs);
 
-      // pinned message (latest pinned)
       const pin = msgs.find((m) => m.pinned);
       setPinned(pin || null);
     });
@@ -73,7 +106,7 @@ export default function PremiereRoomPage() {
     return () => unsubscribe();
   }, [id]);
 
-  // SEND MESSAGE (ANTI-SPAM)
+  // SEND MESSAGE
   const sendMessage = async () => {
     if (!input.trim() || !user) return;
 
@@ -91,7 +124,7 @@ export default function PremiereRoomPage() {
       userId: user.uid,
       name: user.displayName || "User",
       photoURL: user.photoURL || "",
-      isAdmin: user.email === "youradmin@email.com", // ⚠️ CHANGE THIS
+      isAdmin: user.email === "thefifthagefilms@gmail.com",
       createdAt: serverTimestamp(),
       pinned: false,
     });
@@ -99,11 +132,10 @@ export default function PremiereRoomPage() {
     setInput("");
   };
 
-  // PIN MESSAGE (ADMIN ONLY)
+  // PIN MESSAGE
   const pinMessage = async (msgId) => {
     if (!user?.email) return;
 
-    // remove old pins
     const oldPinned = messages.filter((m) => m.pinned);
     for (let m of oldPinned) {
       await updateDoc(
@@ -112,7 +144,6 @@ export default function PremiereRoomPage() {
       );
     }
 
-    // set new pin
     await updateDoc(
       doc(db, "premieres", id, "messages", msgId),
       { pinned: true }
@@ -139,11 +170,19 @@ export default function PremiereRoomPage() {
     <div className="min-h-screen bg-[#0B0B0F] text-white">
 
       {/* HEADER */}
-      <div className="px-4 md:px-16 py-4 border-b border-white/10 flex justify-between">
+      <div className="px-4 md:px-16 py-4 border-b border-white/10 flex justify-between items-center">
         <h1 className="text-lg md:text-xl">{premiere.title}</h1>
-        <span className="bg-red-600 px-3 py-1 text-xs rounded-full animate-pulse">
-          LIVE
-        </span>
+
+        {/* ✅ LIVE + VIEWERS */}
+        <div className="flex items-center gap-3">
+          <span className="bg-red-600 px-3 py-1 text-xs rounded-full animate-pulse">
+            LIVE
+          </span>
+
+          <span className="text-xs bg-white/10 px-3 py-1 rounded-full">
+            👀 {viewerCount} watching
+          </span>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6 p-4 md:px-16">
@@ -166,14 +205,12 @@ export default function PremiereRoomPage() {
 
           <h2 className="mb-2 text-sm font-semibold">Live Chat</h2>
 
-          {/* PINNED */}
           {pinned && (
             <div className="bg-yellow-600/20 border border-yellow-600 text-xs p-2 rounded mb-2">
               📌 {pinned.name}: {pinned.text}
             </div>
           )}
 
-          {/* MESSAGES */}
           <div className="flex-1 overflow-y-auto space-y-3 text-sm">
 
             {messages.map((msg) => (
@@ -200,7 +237,6 @@ export default function PremiereRoomPage() {
 
           </div>
 
-          {/* INPUT */}
           <div className="mt-2 flex gap-2">
             <input
               value={input}
