@@ -8,27 +8,24 @@ import {
   query,
   orderBy,
   limit,
+  where,
 } from "firebase/firestore";
 import Link from "next/link";
 import Image from "next/image";
 import CardWishlistIcon from "@/components/CardWishlistIcon";
 
-/* =========================================
-   CINEMATIC HERO
-========================================= */
-
+/* HERO */
 function CinematicHero({ movie }) {
   if (!movie) return null;
 
   return (
-    <section className="relative h-[70vh] sm:h-[80vh] md:h-[90vh] w-full overflow-hidden">
+    <section className="relative h-[70vh] md:h-[90vh] w-full overflow-hidden">
       <Image
         src={movie.bannerImage || movie.posterImage}
         alt={movie.title}
         fill
         priority
-        sizes="100vw"
-        className="object-cover scale-105"
+        className="object-cover"
       />
 
       <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-black/30" />
@@ -43,27 +40,18 @@ function CinematicHero({ movie }) {
           {movie.tagline || movie.description}
         </p>
 
-        <div className="flex gap-3">
-          <Link
-            href={`/movie/${movie.id}`}
-            className="bg-red-600 px-6 py-3 rounded-full text-sm md:text-base"
-          >
-            ▶ Watch Now
-          </Link>
-
-          <span className="bg-white/10 px-5 py-3 rounded-full text-sm">
-            {movie.genre || "Feature Film"}
-          </span>
-        </div>
+        <Link
+          href={`/movie/${movie.id}`}
+          className="bg-red-600 px-6 py-3 rounded-full"
+        >
+          ▶ Watch Now
+        </Link>
       </div>
     </section>
   );
 }
 
-/* =========================================
-   PREMIERE ROW
-========================================= */
-
+/* PREMIERE ROW */
 function PremiereRow({ premieres }) {
   if (!premieres?.length) return null;
 
@@ -73,35 +61,25 @@ function PremiereRow({ premieres }) {
         🔴 Live Premieres
       </h2>
 
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className="flex gap-5 overflow-x-auto pb-4">
         {premieres.map((p) => (
           <Link
             key={p.id}
             href={`/premiere/${p.id}/join`}
-            className="min-w-[220px] md:min-w-[260px]"
+            className="min-w-[240px] group"
           >
-            <div className="relative h-[140px] rounded-2xl overflow-hidden border border-white/10 bg-black">
+            <div className="relative h-[160px] rounded-2xl overflow-hidden border border-white/10 bg-black group-hover:scale-[1.03] transition">
 
-              <div className="absolute inset-0 bg-gradient-to-br from-red-600/30 to-black" />
+              <div className="absolute inset-0 bg-gradient-to-br from-red-600/40 to-black" />
 
               <div className="absolute inset-0 p-4 flex flex-col justify-between">
-
-                <span className="text-xs bg-red-600 px-2 py-1 rounded-full w-fit">
+                <span className="text-xs bg-red-600 px-2 py-1 rounded-full animate-pulse">
                   LIVE
                 </span>
 
-                <div>
-                  <h3 className="text-sm font-semibold line-clamp-2">
-                    {p.title}
-                  </h3>
-
-                  <p className="text-xs text-gray-300">
-                    {p.startTime
-                      ? new Date(p.startTime).toLocaleString()
-                      : "Now Streaming"}
-                  </p>
-                </div>
-
+                <h3 className="text-sm font-semibold">
+                  {p.title}
+                </h3>
               </div>
 
             </div>
@@ -112,10 +90,7 @@ function PremiereRow({ premieres }) {
   );
 }
 
-/* =========================================
-   MOVIE ROW
-========================================= */
-
+/* MOVIE ROW */
 function MovieRow({ title, movies }) {
   if (!movies?.length) return null;
 
@@ -127,20 +102,10 @@ function MovieRow({ title, movies }) {
 
       <div className="flex gap-4 overflow-x-auto pb-4">
         {movies.map((movie) => (
-          <Link
-            key={movie.id}
-            href={`/movie/${movie.id}`}
-            className="group min-w-[150px] md:min-w-[240px]"
-          >
-            <div className="relative aspect-[2/3] w-[150px] md:w-[240px] rounded-2xl overflow-hidden">
+          <Link key={movie.id} href={`/movie/${movie.id}`}>
+            <div className="relative w-[150px] md:w-[240px] aspect-[2/3] rounded-2xl overflow-hidden">
               <CardWishlistIcon movieId={movie.id} />
-
-              <Image
-                src={movie.posterImage}
-                alt={movie.title}
-                fill
-                className="object-cover"
-              />
+              <Image src={movie.posterImage} alt={movie.title} fill />
             </div>
 
             <h3 className="mt-2 text-sm text-gray-300">
@@ -153,10 +118,7 @@ function MovieRow({ title, movies }) {
   );
 }
 
-/* =========================================
-   HOMEPAGE
-========================================= */
-
+/* MAIN */
 export default function Home() {
   const [hero, setHero] = useState(null);
   const [featured, setFeatured] = useState([]);
@@ -165,36 +127,38 @@ export default function Home() {
   const [premieres, setPremieres] = useState([]);
 
   useEffect(() => {
-    const fetchHomepage = async () => {
+    const fetchData = async () => {
       try {
-        const trendingQuery = query(
-          collection(db, "movies"),
-          limit(12)
-        );
-
-        const featuredQuery = query(
-          collection(db, "movies"),
-          limit(12)
-        );
-
-        const newQuery = query(
-          collection(db, "movies"),
-          orderBy("releaseDate", "desc"),
-          limit(12)
-        );
-
-        const premiereQuery = query(
-          collection(db, "premieres"),
-          orderBy("startTime", "desc"),
-          limit(10)
-        );
-
         const [trendingSnap, featuredSnap, newSnap, premiereSnap] =
           await Promise.all([
-            getDocs(trendingQuery),
-            getDocs(featuredQuery),
-            getDocs(newQuery),
-            getDocs(premiereQuery),
+            getDocs(
+              query(
+                collection(db, "movies"),
+                where("isTrending", "==", true),
+                limit(12)
+              )
+            ),
+            getDocs(
+              query(
+                collection(db, "movies"),
+                where("isFeatured", "==", true),
+                limit(12)
+              )
+            ),
+            getDocs(
+              query(
+                collection(db, "movies"),
+                orderBy("releaseDate", "desc"),
+                limit(12)
+              )
+            ),
+            getDocs(
+              query(
+                collection(db, "premieres"),
+                orderBy("startTime", "desc"),
+                limit(10)
+              )
+            ),
           ]);
 
         const now = new Date();
@@ -206,60 +170,38 @@ export default function Home() {
             const end = data.endTime ? new Date(data.endTime) : null;
 
             let status = "scheduled";
-
             if (start && now >= start) status = "live";
             if (end && now >= end) status = "ended";
 
-            return {
-              id: doc.id,
-              ...data,
-              status,
-            };
+            return { id: doc.id, ...data, status };
           })
-          .filter((p) => p.status === "live"); // ONLY LIVE
+          .filter((p) => p.status === "live");
 
         setPremieres(premiereData);
 
-        const trendingMovies = trendingSnap.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        const featuredMovies = featuredSnap.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        const newMovies = newSnap.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+        const trendingMovies = trendingSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const featuredMovies = featuredSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const newMovies = newSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
         setTrending(trendingMovies);
         setFeatured(featuredMovies);
         setNewReleases(newMovies);
 
-        setHero(
-          featuredMovies[0] ||
-          trendingMovies[0] ||
-          newMovies[0] ||
-          null
-        );
+        setHero(featuredMovies[0] || trendingMovies[0] || newMovies[0]);
 
-      } catch (error) {
-        console.error("Homepage fetch error:", error);
+      } catch (err) {
+        console.error("Homepage error:", err);
       }
     };
 
-    fetchHomepage();
+    fetchData();
   }, []);
 
   return (
     <div className="bg-[#0B0B0F] text-white min-h-screen">
-      <div className="h-[70px] md:h-[80px]" />
+      <div className="h-[70px]" />
 
       <CinematicHero movie={hero} />
-
       <PremiereRow premieres={premieres} />
 
       <MovieRow title="Trending Now" movies={trending} />
