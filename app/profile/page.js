@@ -10,6 +10,7 @@ import {
   getDocs,
   query,
   where,
+  getDoc, // ✅ NEW
 } from "firebase/firestore";
 import {
   EmailAuthProvider,
@@ -30,7 +31,13 @@ export default function ProfilePage() {
   const [comments, setComments] = useState([]);
   const [ratings, setRatings] = useState([]);
   const [watchHistory, setWatchHistory] = useState([]);
-  const [tickets, setTickets] = useState([]); // ✅ NEW
+  const [tickets, setTickets] = useState([]);
+
+  /* ✅ NEW PROFILE DATA */
+  const [profile, setProfile] = useState({
+    name: "",
+    bio: "",
+  });
 
   /* Redirect */
   useEffect(() => {
@@ -38,6 +45,23 @@ export default function ProfilePage() {
       router.push("/login");
     }
   }, [user, router]);
+
+  /* ✅ FETCH PROFILE */
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchProfile = async () => {
+      const snap = await getDoc(doc(db, "users", user.uid));
+      if (snap.exists()) {
+        setProfile({
+          name: snap.data().name || "",
+          bio: snap.data().bio || "",
+        });
+      }
+    };
+
+    fetchProfile();
+  }, [user]);
 
   /* Wishlist */
   useEffect(() => {
@@ -84,7 +108,7 @@ export default function ProfilePage() {
     fetchActivity();
   }, [user]);
 
-  /* ✅ FETCH TICKETS */
+  /* Tickets */
   useEffect(() => {
     if (!user) return;
 
@@ -195,12 +219,35 @@ export default function ProfilePage() {
       {/* Content */}
       <div className="flex-1 p-6 md:p-10 space-y-8">
 
+        {/* ✅ OVERVIEW UPDATED */}
         {activeTab === "overview" && (
-          <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
-            <h2 className="text-xl font-bold mb-4">Overview</h2>
-            <p>Email: {user.email}</p>
+          <div className="bg-white/5 p-6 rounded-2xl border border-white/10 space-y-4">
+
+            <h2 className="text-xl font-bold">Overview</h2>
+
+            <p><span className="text-gray-400">Email:</span> {user.email}</p>
+
+            <p>
+              <span className="text-gray-400">Name:</span>{" "}
+              {profile.name || "Not set"}
+            </p>
+
+            <p>
+              <span className="text-gray-400">Bio:</span>{" "}
+              {profile.bio || "No bio added"}
+            </p>
+
+            <Link
+              href="/profile/edit"
+              className="inline-block mt-4 bg-red-600 px-4 py-2 rounded-lg text-sm"
+            >
+              Edit Profile
+            </Link>
+
           </div>
         )}
+
+        {/* (ALL OTHER TABS UNCHANGED) */}
 
         {activeTab === "tickets" && (
           <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
@@ -243,7 +290,6 @@ export default function ProfilePage() {
                 <p key={i}>{c.comment}</p>
               ))}
             </div>
-
           </div>
         )}
 

@@ -1,6 +1,7 @@
 import "./globals.css";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import CookieBanner from "@/components/CookieBanner"; // ✅ ADDED
 import { AuthProvider } from "@/context/AuthContext";
 import Script from "next/script";
 
@@ -26,6 +27,10 @@ export default function RootLayout({ children }) {
             {children}
           </main>
           <Footer />
+
+          {/* ✅ COOKIE BANNER (NON-BREAKING POSITION) */}
+          <CookieBanner />
+
         </AuthProvider>
 
       </body>

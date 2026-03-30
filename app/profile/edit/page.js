@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { updateProfile } from "firebase/auth";
-import { auth } from "@/firebase";
-import { db } from "@/firebase";
+import { auth, db } from "@/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 
 export default function EditProfilePage() {
@@ -14,6 +13,7 @@ export default function EditProfilePage() {
 
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
+  const [bio, setBio] = useState(""); // ✅ NEW
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -24,11 +24,12 @@ export default function EditProfilePage() {
     if (user) {
       setName(user.displayName || "");
 
-      // Fetch extra profile data
       const fetchUserData = async () => {
         const snapshot = await getDoc(doc(db, "users", user.uid));
         if (snapshot.exists()) {
-          setMobile(snapshot.data().mobile || "");
+          const data = snapshot.data();
+          setMobile(data.mobile || "");
+          setBio(data.bio || ""); // ✅ NEW
         }
       };
 
@@ -42,17 +43,18 @@ export default function EditProfilePage() {
     try {
       setSaving(true);
 
-      // Update Firebase Auth displayName
+      // Update Firebase Auth name
       await updateProfile(auth.currentUser, {
         displayName: name,
       });
 
-      // Save additional data in Firestore
+      // Save to Firestore
       await setDoc(
         doc(db, "users", user.uid),
         {
           name,
           mobile,
+          bio, // ✅ NEW
           email: user.email,
           updatedAt: new Date(),
         },
@@ -87,6 +89,7 @@ export default function EditProfilePage() {
 
         <form onSubmit={handleSave} className="space-y-6">
 
+          {/* NAME */}
           <div>
             <label className="block text-sm mb-2 text-gray-400">
               Full Name
@@ -100,6 +103,7 @@ export default function EditProfilePage() {
             />
           </div>
 
+          {/* MOBILE */}
           <div>
             <label className="block text-sm mb-2 text-gray-400">
               Mobile Number (Optional)
@@ -112,12 +116,26 @@ export default function EditProfilePage() {
             />
           </div>
 
+          {/* ✅ BIO (NEW) */}
+          <div>
+            <label className="block text-sm mb-2 text-gray-400">
+              Bio
+            </label>
+            <textarea
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              placeholder="Tell something about yourself..."
+              className="w-full bg-zinc-800 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600"
+            />
+          </div>
+
+          {/* BUTTON */}
           <button
             type="submit"
             disabled={saving}
-            className="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-full transition"
+            className="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-full transition w-full"
           >
-            Save Changes
+            {saving ? "Saving..." : "Save Changes"}
           </button>
 
         </form>
