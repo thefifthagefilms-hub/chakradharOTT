@@ -30,30 +30,42 @@ export default function PremiereRoomPage() {
   const [lastSent, setLastSent] = useState(0);
   const [pinned, setPinned] = useState(null);
 
-  // ✅ NEW: LIVE VIEWERS
   const [viewerCount, setViewerCount] = useState(0);
 
-  // FETCH PREMIERE
+  // ✅ HOST STATE
+  const [isHost, setIsHost] = useState(false);
+
+  /* FETCH PREMIERE */
   useEffect(() => {
     if (!id) return;
 
     const fetchPremiere = async () => {
-      try {
-        const snap = await getDoc(doc(db, "premieres", id));
-        if (snap.exists()) {
-          setPremiere({ id: snap.id, ...snap.data() });
-        }
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
+      const snap = await getDoc(doc(db, "premieres", id));
+      if (snap.exists()) {
+        setPremiere({ id: snap.id, ...snap.data() });
       }
+      setLoading(false);
     };
 
     fetchPremiere();
   }, [id]);
 
-  // ✅ LIVE VIEWER JOIN (NO DUPLICATES)
+  /* CHECK HOST */
+  useEffect(() => {
+    if (!user || !id) return;
+
+    const hostRef = doc(db, "premieres", id, "hosts", user.uid);
+
+    const unsub = onSnapshot(hostRef, (snap) => {
+      if (snap.exists()) setIsHost(true);
+      else if (user.email === "thefifthagefilms@gmail.com") setIsHost(true);
+      else setIsHost(false);
+    });
+
+    return () => unsub();
+  }, [user, id]);
+
+  /* VIEWERS */
   useEffect(() => {
     if (!user || !id) return;
 
@@ -64,67 +76,52 @@ export default function PremiereRoomPage() {
       joinedAt: new Date(),
     });
 
-    return () => {
-      deleteDoc(viewerRef);
-    };
+    return () => deleteDoc(viewerRef);
   }, [user, id]);
 
-  // ✅ LIVE VIEWER COUNT
   useEffect(() => {
-    if (!id) return;
+    const ref = collection(db, "premieres", id, "viewers");
 
-    const viewersRef = collection(db, "premieres", id, "viewers");
-
-    const unsub = onSnapshot(viewersRef, (snap) => {
+    const unsub = onSnapshot(ref, (snap) => {
       setViewerCount(snap.size);
     });
 
     return () => unsub();
   }, [id]);
 
-  // REALTIME CHAT
+  /* CHAT */
   useEffect(() => {
-    if (!id) return;
-
     const q = query(
       collection(db, "premieres", id, "messages"),
       orderBy("createdAt", "asc")
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
+    const unsub = onSnapshot(q, (snap) => {
+      const data = snap.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
       }));
 
-      setMessages(msgs);
-
-      const pin = msgs.find((m) => m.pinned);
-      setPinned(pin || null);
+      setMessages(data);
+      setPinned(data.find((m) => m.pinned));
     });
 
-    return () => unsubscribe();
+    return () => unsub();
   }, [id]);
 
-  // SEND MESSAGE
+  /* SEND */
   const sendMessage = async () => {
-    if (!input.trim() || !user) return;
+    if (!input.trim()) return;
 
     const now = Date.now();
-
-    if (now - lastSent < 2000) {
-      alert("Slow down…");
-      return;
-    }
+    if (now - lastSent < 2000) return alert("Slow down…");
 
     setLastSent(now);
 
     await addDoc(collection(db, "premieres", id, "messages"), {
       text: input,
-      userId: user.uid,
       name: user.displayName || "User",
-      photoURL: user.photoURL || "",
-      isAdmin: user.email === "thefifthagefilms@gmail.com",
+      userId: user.uid,
       createdAt: serverTimestamp(),
       pinned: false,
     });
@@ -132,12 +129,11 @@ export default function PremiereRoomPage() {
     setInput("");
   };
 
-  // PIN MESSAGE
+  /* PIN */
   const pinMessage = async (msgId) => {
-    if (!user?.email) return;
+    const old = messages.filter((m) => m.pinned);
 
-    const oldPinned = messages.filter((m) => m.pinned);
-    for (let m of oldPinned) {
+    for (let m of old) {
       await updateDoc(
         doc(db, "premieres", id, "messages", m.id),
         { pinned: false }
@@ -150,86 +146,83 @@ export default function PremiereRoomPage() {
     );
   };
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        Login required.
-      </div>
+  /* DELETE */
+  const deleteMessage = async (msgId) => {
+    await deleteDoc(doc(db, "premieres", id, "messages", msgId));
+  };
+
+  /* MAKE HOST */
+  const makeHost = async (msgUserId) => {
+    await setDoc(
+      doc(db, "premieres", id, "hosts", msgUserId),
+      {
+        userId: msgUserId,
+      }
     );
+  };
+
+  if (!user) {
+    return <div className="text-white p-10">Login required</div>;
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        Loading...
-      </div>
-    );
+    return <div className="text-white p-10">Loading...</div>;
   }
 
   return (
     <div className="min-h-screen bg-[#0B0B0F] text-white">
 
       {/* HEADER */}
-      <div className="px-4 md:px-16 py-4 border-b border-white/10 flex justify-between items-center">
-        <h1 className="text-lg md:text-xl">{premiere.title}</h1>
+      <div className="flex justify-between p-4 border-b border-white/10">
 
-        {/* ✅ LIVE + VIEWERS */}
-        <div className="flex items-center gap-3">
-          <span className="bg-red-600 px-3 py-1 text-xs rounded-full animate-pulse">
+        <h1>{premiere.title}</h1>
+
+        <div className="flex gap-3 items-center">
+          <span className="bg-red-600 px-2 py-1 text-xs rounded">
             LIVE
           </span>
 
-          <span className="text-xs bg-white/10 px-3 py-1 rounded-full">
-            👀 {viewerCount} watching
+          <span className="text-xs">
+            👀 {viewerCount}
           </span>
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6 p-4 md:px-16">
+      <div className="grid lg:grid-cols-3 gap-6 p-4">
 
         {/* VIDEO */}
-        <div className="lg:col-span-2">
-          <div className="aspect-video bg-black rounded-2xl overflow-hidden">
-            {premiere.embedLink ? (
-              <iframe src={premiere.embedLink} className="w-full h-full" />
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-400">
-                Waiting for stream...
-              </div>
-            )}
-          </div>
+        <div className="lg:col-span-2 aspect-video">
+          <iframe
+            src={premiere.embedLink}
+            className="w-full h-full"
+          />
         </div>
 
         {/* CHAT */}
-        <div className="bg-white/5 rounded-2xl p-4 flex flex-col h-[500px]">
-
-          <h2 className="mb-2 text-sm font-semibold">Live Chat</h2>
+        <div className="bg-white/5 p-4 rounded">
 
           {pinned && (
-            <div className="bg-yellow-600/20 border border-yellow-600 text-xs p-2 rounded mb-2">
-              📌 {pinned.name}: {pinned.text}
+            <div className="bg-yellow-600 p-2 mb-2 text-xs">
+              📌 {pinned.text}
             </div>
           )}
 
-          <div className="flex-1 overflow-y-auto space-y-3 text-sm">
+          <div className="h-[400px] overflow-y-auto space-y-2">
 
-            {messages.map((msg) => (
-              <div key={msg.id} className="flex justify-between">
+            {messages.map((m) => (
+              <div key={m.id} className="flex justify-between">
 
-                <div className={`${msg.isAdmin ? "text-yellow-400" : ""}`}>
-                  <span className="text-xs text-gray-400">
-                    {msg.name}
-                  </span>
-                  <p>{msg.text}</p>
+                <div>
+                  <p className="text-xs text-gray-400">{m.name}</p>
+                  <p>{m.text}</p>
                 </div>
 
-                {user.email === "thefifthagefilms@gmail.com" && (
-                  <button
-                    onClick={() => pinMessage(msg.id)}
-                    className="text-xs text-gray-400"
-                  >
-                    📌
-                  </button>
+                {isHost && (
+                  <div className="flex gap-2 text-xs">
+                    <button onClick={() => pinMessage(m.id)}>📌</button>
+                    <button onClick={() => deleteMessage(m.id)}>❌</button>
+                    <button onClick={() => makeHost(m.userId)}>👑</button>
+                  </div>
                 )}
 
               </div>
@@ -237,16 +230,15 @@ export default function PremiereRoomPage() {
 
           </div>
 
-          <div className="mt-2 flex gap-2">
+          <div className="flex gap-2 mt-2">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className="flex-1 bg-white/10 px-3 py-2 rounded text-sm"
-              placeholder="Type..."
+              className="flex-1 bg-white/10 p-2"
             />
             <button
               onClick={sendMessage}
-              className="bg-red-600 px-4 rounded text-sm"
+              className="bg-red-600 px-3"
             >
               Send
             </button>
