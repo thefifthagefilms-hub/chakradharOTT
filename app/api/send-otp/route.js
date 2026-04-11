@@ -4,8 +4,25 @@ import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { Resend } from "resend";
 
+// Lazy initialize Resend only when API is called
+function getResendClient() {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error(
+      "RESEND_API_KEY is not configured. Add it to .env.local to enable OTP emails."
+    );
+  }
+  return new Resend(process.env.RESEND_API_KEY);
+}
+
 export async function POST(req) {
   try {
+    if (!process.env.RESEND_API_KEY) {
+      return NextResponse.json(
+        { success: false, error: "Email service not configured" },
+        { status: 503 }
+      );
+    }
+
     const { email } = await req.json();
 
     if (!email) {
@@ -62,7 +79,7 @@ export async function POST(req) {
       expiresAt: now + 5 * 60 * 1000,
     });
 
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    const resend = getResendClient();
 
     await resend.emails.send({
       from: "Chakradhar OTT <onboarding@resend.dev>",

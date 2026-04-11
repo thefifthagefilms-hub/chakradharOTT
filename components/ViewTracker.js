@@ -12,6 +12,8 @@ import {
   doc,
   increment,
   serverTimestamp,
+  setDoc,
+  getDoc,
 } from "firebase/firestore";
 
 export default function ViewTracker({ movieId }) {
@@ -19,23 +21,26 @@ export default function ViewTracker({ movieId }) {
   useEffect(() => {
 
     const trackView = async () => {
+      try {
 
-      let deviceId = localStorage.getItem("deviceId");
+        if (!movieId) return;
 
-      if (!deviceId) {
-        deviceId = crypto.randomUUID();
-        localStorage.setItem("deviceId", deviceId);
-      }
+        let deviceId = localStorage.getItem("deviceId");
 
-      const q = query(
-        collection(db, "views"),
-        where("movieId", "==", movieId),
-        where("deviceId", "==", deviceId)
-      );
+        if (!deviceId) {
+          deviceId = crypto.randomUUID();
+          localStorage.setItem("deviceId", deviceId);
+        }
 
-      const snapshot = await getDocs(q);
+        const q = query(
+          collection(db, "views"),
+          where("movieId", "==", movieId),
+          where("deviceId", "==", deviceId)
+        );
 
-      if (snapshot.empty) {
+        const snapshot = await getDocs(q);
+
+        if (!snapshot.empty) return;
 
         await addDoc(collection(db, "views"), {
           movieId,
@@ -43,10 +48,18 @@ export default function ViewTracker({ movieId }) {
           createdAt: serverTimestamp(),
         });
 
-        await updateDoc(doc(db, "movies", movieId), {
+        const movieRef = doc(db, "movies", movieId);
+        const movieSnap = await getDoc(movieRef);
+
+        if (!movieSnap.exists()) return;
+
+        await updateDoc(movieRef, {
           viewsReal: increment(1),
         });
 
+      } catch (error) {
+        console.error("View tracking error:", error);
+        // Do NOT throw
       }
     };
 
