@@ -44,7 +44,7 @@ export default function LoginPage() {
       setLoading(true);
 
       if (mode === "login") {
-        const userCredential = await loginWithEmail(email, password);
+        await loginWithEmail(email, password);
 
         // Block unverified users
         if (!auth.currentUser.emailVerified) {
@@ -52,7 +52,7 @@ export default function LoginPage() {
           return;
         }
       } else {
-        const userCredential = await registerWithEmail(email, password);
+        await registerWithEmail(email, password);
 
         // Send verification email
         await sendEmailVerification(auth.currentUser);
