@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { updateProfile } from "firebase/auth";
 import { auth, db } from "@/firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
 
 export default function EditProfilePage() {
   const { user, loading } = useAuth();
@@ -54,9 +54,9 @@ export default function EditProfilePage() {
         {
           name,
           mobile,
-          bio, // ✅ NEW
+          bio,
           email: user.email,
-          updatedAt: new Date(),
+          updatedAt: Timestamp.now(),
         },
         { merge: true }
       );

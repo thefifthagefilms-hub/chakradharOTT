@@ -6,6 +6,7 @@ import {
   getDoc,
   updateDoc,
   setDoc,
+  Timestamp,
 } from "firebase/firestore";
 
 export async function POST(req) {
@@ -58,7 +59,7 @@ export async function POST(req) {
     {
       code,
       used: false,
-      createdAt: new Date(),
+      createdAt: Timestamp.now(),
       paymentId: razorpay_payment_id,
     }
   );
@@ -70,7 +71,7 @@ export async function POST(req) {
       ticketCode: code,
       premiereId,
       title,
-      purchasedAt: new Date(),
+      purchasedAt: Timestamp.now(),
     }
   );
 

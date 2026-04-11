@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { sendEmailVerification } from "firebase/auth";
+import { sendEmailVerification, signOut } from "firebase/auth";
 import { auth } from "@/firebase";
 
 export default function LoginPage() {
@@ -19,6 +19,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [verificationMessage, setVerificationMessage] = useState(""); // ✅ NEW
 
   /* ---------------- GOOGLE LOGIN ---------------- */
 
@@ -42,13 +43,31 @@ export default function LoginPage() {
 
     try {
       setLoading(true);
+      setVerificationMessage(""); // ✅ Clear previous messages
 
       if (mode === "login") {
         await loginWithEmail(email, password);
 
-        // Block unverified users
+        // ✅ FIXED: Check verification AFTER login
         if (!auth.currentUser.emailVerified) {
-          alert("Please verify your email before logging in.");
+          // Logout immediately to keep state consistent
+          await signOut(auth);
+
+          // Show message with resend option
+          setVerificationMessage(
+            "Email not verified. Check your inbox for verification link. Resend email?"
+          );
+
+          // Resend verification email
+          try {
+            await sendEmailVerification(auth.currentUser);
+            alert("Verification email resent. Check your inbox or spam folder.");
+          } catch (err) {
+            console.error("Resend error:", err);
+          }
+
+          setEmail("");
+          setPassword("");
           return;
         }
       } else {
@@ -57,8 +76,12 @@ export default function LoginPage() {
         // Send verification email
         await sendEmailVerification(auth.currentUser);
 
-        alert("Verification email sent. Please check your inbox or in spam folder.");
+        alert(
+          "Account created! Verification email sent. Please check your inbox or spam folder."
+        );
         setMode("login");
+        setEmail("");
+        setPassword("");
         return;
       }
 
@@ -109,6 +132,29 @@ export default function LoginPage() {
         <div className="text-center text-gray-400 mb-6 text-sm">
           OR
         </div>
+
+        {/* ✅ VERIFICATION MESSAGE */}
+        {verificationMessage && (
+          <div className="bg-yellow-600/20 border border-yellow-500/50 text-yellow-200 p-4 rounded-xl mb-6 text-sm">
+            <p className="mb-3">{verificationMessage}</p>
+            <button
+              type="button"
+              onClick={async () => {
+                if (email && auth.currentUser) {
+                  try {
+                    await sendEmailVerification(auth.currentUser);
+                    alert("Verification email resent!");
+                  } catch (err) {
+                    alert("Error resending email");
+                  }
+                }
+              }}
+              className="w-full bg-yellow-600 hover:bg-yellow-700 px-3 py-2 rounded text-xs transition"
+            >
+              Resend Verification Email
+            </button>
+          </div>
+        )}
 
         {/* EMAIL FORM */}
         <form onSubmit={handleEmailAuth} className="space-y-4">

@@ -9,6 +9,7 @@ import {
   getDocs,
   setDoc,
   updateDoc,
+  Timestamp,
 } from "firebase/firestore";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -73,7 +74,7 @@ export default function AdminPremiereDetail() {
         {
           code,
           used: false,
-          createdAt: new Date(),
+          createdAt: Timestamp.now(),
         }
       );
     }

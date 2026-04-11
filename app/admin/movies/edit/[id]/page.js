@@ -206,9 +206,9 @@ export default function EditMovie({ params }) {
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
-              checked={movie.featured || false}
+              checked={movie.isFeatured || false}
               onChange={(e) =>
-                handleChange("featured", e.target.checked)
+                handleChange("isFeatured", e.target.checked)
               }
             />
             Featured
@@ -217,9 +217,9 @@ export default function EditMovie({ params }) {
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
-              checked={movie.trending || false}
+              checked={movie.isTrending || false}
               onChange={(e) =>
-                handleChange("trending", e.target.checked)
+                handleChange("isTrending", e.target.checked)
               }
             />
             Trending

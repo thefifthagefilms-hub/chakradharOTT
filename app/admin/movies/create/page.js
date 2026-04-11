@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { db } from "@/firebase";
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 
 export default function CreateMovie() {
@@ -20,8 +20,8 @@ export default function CreateMovie() {
     genre: "",
     releaseDate: "",
     director: "",
-    featured: false,
-    trending: false,
+    isFeatured: false,
+    isTrending: false,
   });
 
   const convertToEmbed = (url) => {
@@ -67,7 +67,7 @@ export default function CreateMovie() {
     await addDoc(collection(db, "movies"), {
       ...form,
       embedLink: finalEmbed,
-      createdAt: Date.now(),
+      createdAt: Timestamp.now(),
     });
 
     setLoading(false);
@@ -182,7 +182,7 @@ export default function CreateMovie() {
             <input
               type="checkbox"
               onChange={(e) =>
-                handleChange("featured", e.target.checked)
+                handleChange("isFeatured", e.target.checked)
               }
             />
             Featured
@@ -192,7 +192,7 @@ export default function CreateMovie() {
             <input
               type="checkbox"
               onChange={(e) =>
-                handleChange("trending", e.target.checked)
+                handleChange("isTrending", e.target.checked)
               }
             />
             Trending

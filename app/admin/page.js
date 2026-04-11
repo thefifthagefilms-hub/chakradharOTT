@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { db, auth } from "@/firebase";
 import {
   collection,
@@ -9,10 +10,12 @@ import {
   orderBy,
   limit,
 } from "firebase/firestore";
+import { signOut, onAuthStateChanged } from "firebase/auth";
 import { motion } from "framer-motion";
-import { onAuthStateChanged } from "firebase/auth";
 
 export default function AdminDashboard() {
+  const router = useRouter();
+
   const [stats, setStats] = useState({
     movies: 0,
     ratings: 0,
@@ -31,6 +34,7 @@ export default function AdminDashboard() {
   const [adminEmail, setAdminEmail] = useState("");
   const [sessionTimeLeft, setSessionTimeLeft] = useState(1800);
   const [loading, setLoading] = useState(true);
+  const [showWarning, setShowWarning] = useState(false); // ✅ NEW
 
   /* ---------------- AUTH ---------------- */
   useEffect(() => {
