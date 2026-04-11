@@ -1,6 +1,6 @@
-import "./globals.css";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
+import "@/app/globals.css";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import CookieBanner from "@/components/CookieBanner"; // ✅ ADDED
 import { AuthProvider } from "@/context/AuthContext";
 import Script from "next/script";
