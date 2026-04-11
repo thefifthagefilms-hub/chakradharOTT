@@ -57,7 +57,7 @@ export default function LoginPage() {
         // Send verification email
         await sendEmailVerification(auth.currentUser);
 
-        alert("Verification email sent. Please check your inbox.");
+        alert("Verification email sent. Please check your inbox or in spam folder.");
         setMode("login");
         return;
       }
