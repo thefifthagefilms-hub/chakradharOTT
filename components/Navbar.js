@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useRef, useState, useMemo } from "react";
-import { db } from "../firebase";
+import { db } from "@/firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
