@@ -20,6 +20,7 @@ export default function CreateMovie() {
     genre: "",
     releaseDate: "",
     director: "",
+    isHero: false,
     isFeatured: false,
     isTrending: false,
   });
