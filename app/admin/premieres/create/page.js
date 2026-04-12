@@ -12,12 +12,25 @@ function convertToEmbed(url) {
 
     if (url.includes("embed")) return url;
 
-    const videoId =
-      url.split("v=")[1]?.split("&")[0] ||
-      url.split("youtu.be/")[1];
+    let videoId = "";
+
+    // Handle youtu.be/VIDEO_ID format
+    if (url.includes("youtu.be/")) {
+      videoId = url.split("youtu.be/")[1]?.split("?")[0]?.split("&")[0];
+    }
+    // Handle youtube.com/watch?v=VIDEO_ID format
+    else if (url.includes("v=")) {
+      videoId = url.split("v=")[1]?.split("&")[0];
+    }
+
+    if (!videoId) {
+      console.error("Could not extract video ID from:", url);
+      return url;
+    }
 
     return `https://www.youtube.com/embed/${videoId}`;
-  } catch {
+  } catch (err) {
+    console.error("YouTube converter error:", err);
     return url;
   }
 }
@@ -76,7 +89,7 @@ export default function CreatePremierePage() {
 
     } catch (err) {
       console.error("Create error:", err);
-      alert("Error creating premiere");
+      alert("Error creating premiere: " + (err.message || err));
     } finally {
       setLoading(false);
     }
