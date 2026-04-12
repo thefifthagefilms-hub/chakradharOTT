@@ -33,6 +33,7 @@ export default function CreatePremierePage() {
     embedLink: "",
     bannerImage: "",
     startTime: "",
+    displayTime: "",
     ticketRequired: false,
     ticketPrice: 0,
   });
