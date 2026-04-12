@@ -236,10 +236,11 @@ export default function Home() {
           .sort((a, b) => (b.displayTime?.getTime?.() || 0) - (a.displayTime?.getTime?.() || 0));
 
         // Separate live and scheduled
-        const liveList = premiereData.filter((p) => p.status === "live");
+        const liveList = premiereData.filter((p) => p.status === "live" && p.status !== "ended");
         const scheduledList = premiereData.filter(
           (p) =>
             p.status !== "live" &&
+            p.status !== "ended" &&
             p.displayTime &&
             now >= p.displayTime
         );

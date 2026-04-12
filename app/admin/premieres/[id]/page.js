@@ -56,8 +56,15 @@ export default function AdminPremiereDetail() {
 
   /* STATUS CONTROL */
   const updateStatus = async (status) => {
-    await updateDoc(doc(db, "premieres", id), { status });
-    setPremiere((prev) => ({ ...prev, status }));
+    const updateData = { status };
+
+    // ✅ SET endTime when ending
+    if (status === "ended") {
+      updateData.endTime = Timestamp.now();
+    }
+
+    await updateDoc(doc(db, "premieres", id), updateData);
+    setPremiere((prev) => ({ ...prev, ...updateData }));
   };
 
   /* GENERATE TICKETS */
@@ -159,6 +166,14 @@ export default function AdminPremiereDetail() {
           {premiere.status || "scheduled"}
         </span>
       </div>
+
+      {/* EDIT BUTTON */}
+      <Link
+        href={`/admin/premieres/${id}/edit`}
+        className="inline-block bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-semibold transition"
+      >
+        ✏️ Edit Details
+      </Link>
 
       {/* CONTROLS */}
       <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4">

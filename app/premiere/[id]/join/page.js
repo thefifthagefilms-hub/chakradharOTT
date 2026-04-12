@@ -5,15 +5,19 @@ import { db } from "@/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 export default function PremiereJoinPage() {
   const params = useParams();
   const id = params?.id;
+  const { user } = useAuth();
 
   const [premiere, setPremieres] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [timeUntilStart, setTimeUntilStart] = useState(null);
+  const [isRemoved, setIsRemoved] = useState(false);
+  const [removalReason, setRemovalReason] = useState("");
 
   useEffect(() => {
     if (!id) return;
@@ -31,6 +35,18 @@ export default function PremiereJoinPage() {
 
         const data = docSnap.data();
         setPremieres({ id: docSnap.id, ...data });
+
+        // ✅ Check if user is removed
+        if (user?.uid) {
+          const removedRef = doc(db, "premieres", id, "removed_users", user.uid);
+          const removedSnap = await getDoc(removedRef);
+
+          if (removedSnap.exists()) {
+            const removedData = removedSnap.data();
+            setIsRemoved(true);
+            setRemovalReason(removedData.reason || "You have been removed");
+          }
+        }
       } catch (err) {
         console.error("Error fetching premiere:", err);
         setError("Failed to load premiere");
@@ -40,7 +56,7 @@ export default function PremiereJoinPage() {
     };
 
     fetchPremiere();
-  }, [id]);
+  }, [id, user?.uid]);
 
   // Update countdown timer
   useEffect(() => {
@@ -70,6 +86,29 @@ export default function PremiereJoinPage() {
     return (
       <div className="bg-[#0B0B0F] text-white min-h-screen flex items-center justify-center">
         <p className="text-gray-400">Loading premiere...</p>
+      </div>
+    );
+  }
+
+  if (isRemoved) {
+    return (
+      <div className="bg-[#0B0B0F] text-white min-h-screen flex flex-col items-center justify-center px-4">
+        <div className="bg-red-900/30 border border-red-600/50 rounded-2xl p-8 max-w-md text-center space-y-4">
+          <p className="text-3xl">❌</p>
+          <h2 className="text-xl font-bold">Access Denied</h2>
+          <p className="text-gray-300">
+            You have been removed from this premiere session.
+          </p>
+          {removalReason && (
+            <div className="bg-black/50 rounded-lg p-3">
+              <p className="text-xs text-gray-400">Reason:</p>
+              <p className="text-sm">{removalReason}</p>
+            </div>
+          )}
+          <Link href="/" className="inline-block bg-red-600 hover:bg-red-700 px-6 py-2 rounded-lg font-semibold transition mt-4">
+            Back Home
+          </Link>
+        </div>
       </div>
     );
   }
