@@ -32,6 +32,7 @@ export default function ProfilePage() {
   const [ratings, setRatings] = useState([]);
   const [watchHistory, setWatchHistory] = useState([]);
   const [tickets, setTickets] = useState([]);
+  const [paymentHistory, setPaymentHistory] = useState([]);
 
   /* ✅ NEW PROFILE DATA */
   const [profile, setProfile] = useState({
@@ -117,12 +118,19 @@ export default function ProfilePage() {
         collection(db, "users", user.uid, "tickets")
       );
 
-      setTickets(
-        snap.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }))
-      );
+      const allTickets = snap.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      // Separate paid and free tickets
+      const paid = allTickets.filter((t) => t.purchasedAt);
+      setPaymentHistory(paid.sort((a, b) =>
+        (b.purchasedAt?.toDate?.().getTime() || 0) -
+        (a.purchasedAt?.toDate?.().getTime() || 0)
+      ));
+
+      setTickets(allTickets);
     };
 
     fetchTickets();
@@ -192,7 +200,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="space-y-3 text-sm">
-            {["overview", "activity", "wishlist", "tickets", "security"].map(tab => (
+            {["overview", "activity", "wishlist", "tickets", "payments", "security"].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -202,7 +210,7 @@ export default function ProfilePage() {
                     : "hover:bg-white/10"
                 }`}
               >
-                {tab}
+                {tab === "payments" ? "💳 Payments" : tab}
               </button>
             ))}
           </div>
@@ -306,6 +314,48 @@ export default function ProfilePage() {
                     height={300}
                   />
                 </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "payments" && (
+          <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
+            <h2 className="text-xl font-bold mb-4">💳 Payment History</h2>
+
+            {paymentHistory.length === 0 && (
+              <p className="text-gray-400">No payment history yet.</p>
+            )}
+
+            <div className="space-y-3">
+              {paymentHistory.map((payment) => (
+                <div
+                  key={payment.id}
+                  className="p-4 rounded-xl border border-green-600/30 bg-green-900/20"
+                >
+                  <div className="flex justify-between items-start gap-4">
+                    <div className="flex-1">
+                      <p className="font-semibold text-lg">{payment.title}</p>
+                      <p className="text-sm text-gray-400">
+                        Ticket Code: {' '}
+                        <span className="font-mono text-green-400">
+                          {payment.ticketCode}
+                        </span>
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Purchased:{' '}
+                        {payment.purchasedAt?.toDate?.().toLocaleDateString?.() ||
+                          "Unknown"}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/premiere/${payment.premiereId}/join`}
+                      className="bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition"
+                    >
+                      Watch Now
+                    </Link>
+                  </div>
+                </div>
               ))}
             </div>
           </div>

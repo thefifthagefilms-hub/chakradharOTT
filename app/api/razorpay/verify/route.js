@@ -61,6 +61,8 @@ export async function POST(req) {
       used: false,
       createdAt: Timestamp.now(),
       paymentId: razorpay_payment_id,
+      approved: true, // ✅ Auto-approved on payment success
+      approvedAt: Timestamp.now(),
     }
   );
 

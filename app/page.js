@@ -57,35 +57,68 @@ function CinematicHero({ movie }) {
 }
 
 /* PREMIERE ROW */
-function PremiereRow({ premieres }) {
-  if (!premieres?.length) return null;
+function PremiereRow({ premieres, scheduled }) {
+  const livePremieres = premieres?.filter(p => p.status === "live") || [];
+  const scheduledPremieres = scheduled?.filter(p => p.status !== "live") || [];
 
   return (
-    <section className="px-4 md:px-16 py-10">
-      <h2 className="text-xl md:text-3xl font-semibold mb-6">
-        🔴 Live Premieres
-      </h2>
+    <>
+      {livePremieres.length > 0 && (
+        <section className="px-4 md:px-16 py-10">
+          <h2 className="text-xl md:text-3xl font-semibold mb-6">
+            🔴 Live Premieres
+          </h2>
 
-      <div className="flex gap-5 overflow-x-auto pb-4">
-        {premieres.map((p) => (
-          <Link key={p.id} href={`/premiere/${p.id}/join`}>
-            <div className="min-w-[240px] relative h-[160px] rounded-2xl overflow-hidden bg-black border border-white/10">
-              <div className="absolute inset-0 bg-gradient-to-br from-red-600/40 to-black" />
+          <div className="flex gap-5 overflow-x-auto pb-4">
+            {livePremieres.map((p) => (
+              <Link key={p.id} href={`/premiere/${p.id}/join`}>
+                <div className="min-w-[240px] relative h-[160px] rounded-2xl overflow-hidden bg-black border border-white/10">
+                  <div className="absolute inset-0 bg-gradient-to-br from-red-600/40 to-black" />
 
-              <div className="absolute inset-0 p-4 flex flex-col justify-between">
-                <span className="text-xs bg-red-600 px-2 py-1 rounded-full animate-pulse">
-                  LIVE
-                </span>
+                  <div className="absolute inset-0 p-4 flex flex-col justify-between">
+                    <span className="text-xs bg-red-600 px-2 py-1 rounded-full animate-pulse">
+                      LIVE
+                    </span>
 
-                <h3 className="text-sm font-semibold">
-                  {p.title}
-                </h3>
-              </div>
-            </div>
-          </Link>
-        ))}
-      </div>
-    </section>
+                    <h3 className="text-sm font-semibold">
+                      {p.title}
+                    </h3>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {scheduledPremieres.length > 0 && (
+        <section className="px-4 md:px-16 py-10">
+          <h2 className="text-xl md:text-3xl font-semibold mb-6">
+            📅 Coming Soon
+          </h2>
+
+          <div className="flex gap-5 overflow-x-auto pb-4">
+            {scheduledPremieres.map((p) => (
+              <Link key={p.id} href={`/premiere/${p.id}/join`}>
+                <div className="min-w-[240px] relative h-[160px] rounded-2xl overflow-hidden bg-black border border-white/10">
+                  <div className="absolute inset-0 bg-gradient-to-br from-yellow-600/40 to-black" />
+
+                  <div className="absolute inset-0 p-4 flex flex-col justify-between">
+                    <span className="text-xs bg-yellow-600 px-2 py-1 rounded-full">
+                      SCHEDULED
+                    </span>
+
+                    <h3 className="text-sm font-semibold">
+                      {p.title}
+                    </h3>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+    </>
   );
 }
 
@@ -135,6 +168,7 @@ export default function Home() {
   const [trending, setTrending] = useState([]);
   const [newReleases, setNewReleases] = useState([]);
   const [premieres, setPremieres] = useState([]);
+  const [scheduledPremieresData, setScheduledPremieresData] = useState([]);
   const [loading, setLoading] = useState(true); // ✅ NEW
 
   useEffect(() => {
@@ -199,16 +233,19 @@ export default function Home() {
 
             return { id: doc.id, ...data, status, displayTime: display };
           })
-          .filter((p) => {
-            // Show premieres that:
-            // 1. Are live, OR
-            // 2. Are scheduled but displayTime has passed (early access)
-            if (p.status === "live") return true;
-            if (p.displayTime && now >= p.displayTime) return true;
-            return false;
-          });
+          .sort((a, b) => (b.displayTime?.getTime?.() || 0) - (a.displayTime?.getTime?.() || 0));
 
-        setPremieres(premiereData);
+        // Separate live and scheduled
+        const liveList = premiereData.filter((p) => p.status === "live");
+        const scheduledList = premiereData.filter(
+          (p) =>
+            p.status !== "live" &&
+            p.displayTime &&
+            now >= p.displayTime
+        );
+
+        setPremieres(liveList);
+        setScheduledPremieresData(scheduledList);
 
         const heroMovie =
           heroSnap.docs.map(d => ({ id: d.id, ...d.data() }))[0];
@@ -254,7 +291,7 @@ export default function Home() {
       <div className="h-[70px]" />
 
       <CinematicHero movie={hero} />
-      <PremiereRow premieres={premieres} />
+      <PremiereRow premieres={premieres} scheduled={scheduledPremieresData} />
 
       <MovieRow title="Trending Now" movies={trending} />
       <MovieRow title="Top Picks" movies={featured} />

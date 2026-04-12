@@ -111,6 +111,25 @@ export default function AdminPremiereDetail() {
     );
   };
 
+  /* TOGGLE APPROVAL */
+  const toggleApproval = async (ticketId, currentStatus) => {
+    await updateDoc(
+      doc(db, "premieres", id, "tickets", ticketId),
+      {
+        approved: !currentStatus,
+        approvedAt: !currentStatus ? Timestamp.now() : null,
+      }
+    );
+
+    setTickets((prev) =>
+      prev.map((t) =>
+        t.id === ticketId
+          ? { ...t, approved: !currentStatus }
+          : t
+      )
+    );
+  };
+
   /* COPY TICKET */
   const copyTicket = (code) => {
     navigator.clipboard.writeText(code);
@@ -215,6 +234,35 @@ export default function AdminPremiereDetail() {
 
       </div>
 
+      {/* PAYMENT REVENUE */}
+      {premiere?.ticketRequired && (
+        <div className="bg-gradient-to-r from-yellow-600/20 to-orange-600/20 border border-yellow-600/30 rounded-2xl p-6">
+          <h2 className="text-lg font-semibold mb-4">💰 Payment Revenue</h2>
+
+          <div className="grid md:grid-cols-3 gap-4">
+            <div>
+              <p className="text-gray-300 text-sm mb-1">Total Sold</p>
+              <p className="text-3xl font-bold">{premiere.ticketsSold || 0}</p>
+              <p className="text-xs text-gray-400">tickets</p>
+            </div>
+
+            <div>
+              <p className="text-gray-300 text-sm mb-1">Ticket Price</p>
+              <p className="text-3xl font-bold">₹{premiere.ticketPrice || 0}</p>
+              <p className="text-xs text-gray-400">per ticket</p>
+            </div>
+
+            <div>
+              <p className="text-gray-300 text-sm mb-1">Total Revenue</p>
+              <p className="text-3xl font-bold text-yellow-400">
+                ₹{((premiere.ticketsSold || 0) * (premiere.ticketPrice || 0)).toLocaleString("en-IN")}
+              </p>
+              <p className="text-xs text-gray-400">earned</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* TICKETS */}
       <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
 
@@ -243,20 +291,54 @@ export default function AdminPremiereDetail() {
                 {ticket.code}
               </p>
 
-              <div className="flex gap-2">
+              {/* PAYMENT INFO */}
+              {ticket.paymentId && (
+                <div className="mb-3 text-xs space-y-1 border-t border-white/10 pt-2">
+                  <p className="text-gray-300">💳 <span className="text-yellow-400">Paid</span></p>
+                  <p className="text-gray-400 break-all">ID: {ticket.paymentId}</p>
+                </div>
+              )}
+
+              {/* APPROVAL STATUS */}
+              {ticket.paymentId && (
+                <div className="mb-3 flex items-center gap-2 text-xs bg-white/5 px-2 py-1 rounded">
+                  {ticket.approved ? (
+                    <span className="text-green-400">✅ Approved</span>
+                  ) : (
+                    <span className="text-yellow-500">⏳ Pending</span>
+                  )}
+                </div>
+              )}
+
+              <div className="flex gap-2 flex-wrap">
 
                 <button
                   onClick={() =>
                     toggleUsed(ticket.id, ticket.used)
                   }
-                  className="text-xs bg-white/10 px-3 py-1 rounded"
+                  className="text-xs bg-white/10 px-3 py-1 rounded hover:bg-white/20 transition"
                 >
-                  {ticket.used ? "Unused" : "Used"}
+                  {ticket.used ? "Mark Unused" : "Mark Used"}
                 </button>
+
+                {ticket.paymentId && (
+                  <button
+                    onClick={() =>
+                      toggleApproval(ticket.id, ticket.approved)
+                    }
+                    className={`text-xs px-3 py-1 rounded transition ${
+                      ticket.approved
+                        ? "bg-red-600/50 hover:bg-red-600"
+                        : "bg-green-600/50 hover:bg-green-600"
+                    }`}
+                  >
+                    {ticket.approved ? "Revoke" : "Approve"}
+                  </button>
+                )}
 
                 <button
                   onClick={() => copyTicket(ticket.code)}
-                  className="text-xs bg-blue-600 px-3 py-1 rounded"
+                  className="text-xs bg-blue-600 px-3 py-1 rounded hover:bg-blue-700 transition"
                 >
                   Copy
                 </button>
