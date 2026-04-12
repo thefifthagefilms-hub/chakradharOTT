@@ -170,9 +170,16 @@ export default function AdminPremiereDetail() {
         </div>
 
         <p className="text-sm text-gray-400">
+          Display Time:{" "}
+          {premiere.displayTime
+            ? premiere.displayTime.toDate?.().toLocaleString() || new Date(premiere.displayTime).toLocaleString()
+            : "Not set"}
+        </p>
+
+        <p className="text-sm text-gray-400">
           Start Time:{" "}
           {premiere.startTime
-            ? new Date(premiere.startTime).toLocaleString()
+            ? premiere.startTime.toDate?.().toLocaleString() || new Date(premiere.startTime).toLocaleString()
             : "Not set"}
         </p>
 

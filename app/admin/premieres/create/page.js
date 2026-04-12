@@ -63,6 +63,7 @@ export default function CreatePremierePage() {
         description: form.description,
         embedLink: embed,
         bannerImage: form.bannerImage || "",
+        displayTime: form.displayTime ? Timestamp.fromDate(new Date(form.displayTime)) : null,
         startTime: Timestamp.fromDate(new Date(form.startTime)), // ✅ FIXED
         status: "scheduled",
         ticketRequired: form.ticketRequired,
@@ -129,6 +130,22 @@ export default function CreatePremierePage() {
           onChange={handleChange}
           className="w-full bg-white/10 border border-white/10 p-3 rounded-lg"
         />
+
+        {/* DISPLAY TIME (EARLY ACCESS) */}
+        <div className="space-y-2">
+          <label className="text-sm text-gray-300">
+            Display Time (when to show on homepage) - Optional
+          </label>
+          <input
+            type="datetime-local"
+            name="displayTime"
+            onChange={handleChange}
+            className="w-full bg-white/10 border border-white/10 p-3 rounded-lg"
+          />
+          <p className="text-xs text-gray-400">
+            If set, premiere appears on homepage from this time. If blank, uses start time.
+          </p>
+        </div>
 
         {/* PAID */}
         <div className="flex items-center gap-3">

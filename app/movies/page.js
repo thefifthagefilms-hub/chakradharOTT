@@ -51,7 +51,7 @@ export default function MoviesPage() {
             <div className="relative aspect-[2/3] overflow-hidden rounded-2xl shadow-lg transition duration-500 group-hover:-translate-y-2">
 
               <Image
-                src={movie.posterImage}
+                src={movie.posterImage || "https://images.unsplash.com/photo-1524985069026-dd778a71c7b4"}
                 alt={movie.title}
                 fill
                 className="object-cover transition duration-700 group-hover:scale-110"

@@ -102,7 +102,16 @@ export default function AdminPremieresPage() {
               </p>
 
               {/* TIME */}
+              <p className="text-xs text-gray-500 mb-2">
+                <span className="text-gray-400">Display:</span>{" "}
+                {premiere.displayTime
+                  ? premiere.displayTime.toDate().toLocaleString()
+                  : premiere.startTime
+                  ? premiere.startTime.toDate().toLocaleString()
+                  : "No date set"}
+              </p>
               <p className="text-xs text-gray-500">
+                <span className="text-gray-400">Live:</span>{" "}
                 {premiere.startTime
                   ? premiere.startTime.toDate().toLocaleString()
                   : "No date set"}

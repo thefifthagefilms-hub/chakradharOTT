@@ -189,6 +189,7 @@ export default function Home() {
         const premiereData = premiereSnap.docs
           .map((doc) => {
             const data = doc.data();
+            const display = data.displayTime?.toDate?.() || data.startTime?.toDate?.();
             const start = data.startTime?.toDate?.();
             const end = data.endTime?.toDate?.();
 
@@ -196,9 +197,16 @@ export default function Home() {
             if (start && now >= start) status = "live";
             if (end && now >= end) status = "ended";
 
-            return { id: doc.id, ...data, status };
+            return { id: doc.id, ...data, status, displayTime: display };
           })
-          .filter((p) => p.status === "live");
+          .filter((p) => {
+            // Show premieres that:
+            // 1. Are live, OR
+            // 2. Are scheduled but displayTime has passed (early access)
+            if (p.status === "live") return true;
+            if (p.displayTime && now >= p.displayTime) return true;
+            return false;
+          });
 
         setPremieres(premiereData);
 
