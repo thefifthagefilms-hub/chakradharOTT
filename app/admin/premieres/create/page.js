@@ -49,6 +49,9 @@ export default function CreatePremierePage() {
     displayTime: "",
     ticketRequired: false,
     ticketPrice: 0,
+    ticketLimit: 0,
+    adminQuota: 0,
+    countAdminQuotaInRevenue: false,
   });
 
   const handleChange = (e) => {
@@ -81,6 +84,11 @@ export default function CreatePremierePage() {
         status: "scheduled",
         ticketRequired: form.ticketRequired,
         ticketPrice: Number(form.ticketPrice || 0),
+        ticketLimit: Number(form.ticketLimit || 0),
+        adminQuota: Number(form.adminQuota || 0),
+        adminQuotaUsed: 0,
+        countAdminQuotaInRevenue: form.countAdminQuotaInRevenue,
+        ticketsSold: 0,
         createdAt: Timestamp.now(),
       });
 
@@ -174,6 +182,54 @@ export default function CreatePremierePage() {
             onChange={handleChange}
             className="w-full bg-white/10 border border-white/10 p-3 rounded-lg"
           />
+        )}
+
+        {/* TICKET LIMIT */}
+        <div className="space-y-2">
+          <label className="text-sm text-gray-300">
+            Max Participants (Ticket Limit) - Optional
+          </label>
+          <input
+            name="ticketLimit"
+            type="number"
+            placeholder="e.g., 100, 500, or 0 for unlimited"
+            onChange={handleChange}
+            className="w-full bg-white/10 border border-white/10 p-3 rounded-lg"
+            min="0"
+          />
+          <p className="text-xs text-gray-400">
+            Set max tickets to sell. Leave as 0 for unlimited.
+          </p>
+        </div>
+
+        {/* ADMIN QUOTA */}
+        <div className="space-y-2">
+          <label className="text-sm text-gray-300">
+            Admin Quota Tickets (Free tickets you can give) - Optional
+          </label>
+          <input
+            name="adminQuota"
+            type="number"
+            placeholder="e.g., 50 free tickets"
+            onChange={handleChange}
+            className="w-full bg-white/10 border border-white/10 p-3 rounded-lg"
+            min="0"
+          />
+          <p className="text-xs text-gray-400">
+            How many free tickets you can give to friends/family.
+          </p>
+        </div>
+
+        {/* COUNT ADMIN QUOTA IN REVENUE */}
+        {form.adminQuota > 0 && (
+          <div className="flex items-center gap-3 bg-white/5 p-3 rounded border border-white/10">
+            <input
+              type="checkbox"
+              name="countAdminQuotaInRevenue"
+              onChange={handleChange}
+            />
+            <label>Count admin quota tickets in revenue?</label>
+          </div>
         )}
 
         <button

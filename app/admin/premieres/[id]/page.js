@@ -12,6 +12,7 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { useParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 function generateTicketCode() {
@@ -22,11 +23,15 @@ function generateTicketCode() {
 
 export default function AdminPremiereDetail() {
   const { id } = useParams();
+  const router = useRouter();
 
   const [premiere, setPremiere] = useState(null);
   const [tickets, setTickets] = useState([]);
   const [ticketCount, setTicketCount] = useState(5);
   const [loading, setLoading] = useState(false);
+  const [archiveModal, setArchiveModal] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [updatingTickets, setUpdatingTickets] = useState({});
 
   /* Fetch Data */
   useEffect(() => {
@@ -67,6 +72,26 @@ export default function AdminPremiereDetail() {
     setPremiere((prev) => ({ ...prev, ...updateData }));
   };
 
+  /* ARCHIVE PREMIERE */
+  const handleArchive = async () => {
+    try {
+      setArchiving(true);
+
+      await updateDoc(doc(db, "premieres", id), {
+        archived: true,
+        archivedAt: Timestamp.now(),
+      });
+
+      alert("✅ Premiere archived successfully!");
+      router.push("/admin/premieres");
+    } catch (err) {
+      console.error("Error archiving premiere:", err);
+      alert("Failed to archive premiere");
+    } finally {
+      setArchiving(false);
+    }
+  };
+
   /* GENERATE TICKETS */
   const handleGenerate = async () => {
     if (!ticketCount || ticketCount < 1) return;
@@ -102,13 +127,12 @@ export default function AdminPremiereDetail() {
 
   /* TOGGLE USED */
   const toggleUsed = async (ticketId, currentStatus) => {
-    await updateDoc(
-      doc(db, "premieres", id, "tickets", ticketId),
-      {
-        used: !currentStatus,
-      }
-    );
+    setUpdatingTickets((prev) => ({ ...prev, [ticketId]: true }));
 
+    // Store previous state for rollback
+    const previousTickets = tickets;
+
+    // Optimistic UI update
     setTickets((prev) =>
       prev.map((t) =>
         t.id === ticketId
@@ -116,18 +140,33 @@ export default function AdminPremiereDetail() {
           : t
       )
     );
+
+    try {
+      await updateDoc(
+        doc(db, "premieres", id, "tickets", ticketId),
+        {
+          used: !currentStatus,
+        }
+      );
+      alert("✅ Ticket marked " + (!currentStatus ? "used" : "unused"));
+    } catch (err) {
+      console.error("Error updating ticket:", err);
+      alert("❌ Failed: " + (err.message || "Unknown error"));
+      // Revert to previous state
+      setTickets(previousTickets);
+    } finally {
+      setUpdatingTickets((prev) => ({ ...prev, [ticketId]: false }));
+    }
   };
 
   /* TOGGLE APPROVAL */
   const toggleApproval = async (ticketId, currentStatus) => {
-    await updateDoc(
-      doc(db, "premieres", id, "tickets", ticketId),
-      {
-        approved: !currentStatus,
-        approvedAt: !currentStatus ? Timestamp.now() : null,
-      }
-    );
+    setUpdatingTickets((prev) => ({ ...prev, [ticketId]: true }));
 
+    // Store previous state for rollback
+    const previousTickets = tickets;
+
+    // Optimistic UI update
     setTickets((prev) =>
       prev.map((t) =>
         t.id === ticketId
@@ -135,6 +174,24 @@ export default function AdminPremiereDetail() {
           : t
       )
     );
+
+    try {
+      await updateDoc(
+        doc(db, "premieres", id, "tickets", ticketId),
+        {
+          approved: !currentStatus,
+          approvedAt: !currentStatus ? Timestamp.now() : null,
+        }
+      );
+      alert("✅ Ticket " + (!currentStatus ? "approved" : "approval revoked"));
+    } catch (err) {
+      console.error("Error updating ticket approval:", err);
+      alert("❌ Failed: " + (err.message || "Unknown error"));
+      // Revert to previous state
+      setTickets(previousTickets);
+    } finally {
+      setUpdatingTickets((prev) => ({ ...prev, [ticketId]: false }));
+    }
   };
 
   /* COPY TICKET */
@@ -192,6 +249,13 @@ export default function AdminPremiereDetail() {
             className="bg-gray-700 px-4 py-2 rounded-lg text-sm"
           >
             ⛔ End
+          </button>
+
+          <button
+            onClick={() => setArchiveModal(true)}
+            className="bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded-lg text-sm transition"
+          >
+            🗂️ Archive
           </button>
 
           <Link
@@ -254,7 +318,7 @@ export default function AdminPremiereDetail() {
         <div className="bg-gradient-to-r from-yellow-600/20 to-orange-600/20 border border-yellow-600/30 rounded-2xl p-6">
           <h2 className="text-lg font-semibold mb-4">💰 Payment Revenue</h2>
 
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid md:grid-cols-3 gap-4 mb-6">
             <div>
               <p className="text-gray-300 text-sm mb-1">Total Sold</p>
               <p className="text-3xl font-bold">{premiere.ticketsSold || 0}</p>
@@ -275,6 +339,57 @@ export default function AdminPremiereDetail() {
               <p className="text-xs text-gray-400">earned</p>
             </div>
           </div>
+
+          {/* ADMIN QUOTA INFO */}
+          {premiere?.adminQuota > 0 && (
+            <div className="bg-white/10 border border-white/10 rounded-lg p-4 space-y-3">
+              <p className="font-semibold text-sm">🎟️ Admin Quota</p>
+              <div className="flex justify-between text-sm">
+                <span>Quota Available:</span>
+                <span className="font-mono">{premiere.adminQuota}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Quota Used:</span>
+                <span className="font-mono">{premiere.adminQuotaUsed || 0}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Counts in Revenue:</span>
+                <span className="font-mono">{premiere.countAdminQuotaInRevenue ? "Yes" : "No"}</span>
+              </div>
+              {premiere.countAdminQuotaInRevenue && (
+                <div className="border-t border-white/10 pt-3 flex justify-between text-sm">
+                  <span>Total with Admin Quota:</span>
+                  <span className="font-mono text-green-400">
+                    ₹{(((premiere.ticketsSold || 0) + (premiere.adminQuotaUsed || 0)) * (premiere.ticketPrice || 0)).toLocaleString("en-IN")}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TICKET LIMIT INFO */}
+          {premiere?.ticketLimit > 0 && (
+            <div className="bg-white/10 border border-white/10 rounded-lg p-4 mt-4 space-y-2">
+              <p className="font-semibold text-sm">🎫 Ticket Limit</p>
+              <div className="flex justify-between text-sm">
+                <span>Max Capacity:</span>
+                <span className="font-mono">{premiere.ticketLimit}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Tickets Sold:</span>
+                <span className="font-mono">{premiere.ticketsSold || 0}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Seats Available:</span>
+                <span className={`font-mono ${(premiere.ticketsSold || 0) >= premiere.ticketLimit ? "text-red-400" : "text-green-400"}`}>
+                  {Math.max(0, premiere.ticketLimit - (premiere.ticketsSold || 0))}
+                </span>
+              </div>
+              {(premiere.ticketsSold || 0) >= premiere.ticketLimit && (
+                <p className="text-xs text-red-400 mt-2">🔴 Capacity Reached - No more tickets available</p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -331,9 +446,10 @@ export default function AdminPremiereDetail() {
                   onClick={() =>
                     toggleUsed(ticket.id, ticket.used)
                   }
-                  className="text-xs bg-white/10 px-3 py-1 rounded hover:bg-white/20 transition"
+                  disabled={updatingTickets[ticket.id]}
+                  className="text-xs bg-white/10 px-3 py-1 rounded hover:bg-white/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {ticket.used ? "Mark Unused" : "Mark Used"}
+                  {updatingTickets[ticket.id] ? "Updating..." : (ticket.used ? "Mark Unused" : "Mark Used")}
                 </button>
 
                 {ticket.paymentId && (
@@ -341,13 +457,14 @@ export default function AdminPremiereDetail() {
                     onClick={() =>
                       toggleApproval(ticket.id, ticket.approved)
                     }
-                    className={`text-xs px-3 py-1 rounded transition ${
+                    disabled={updatingTickets[ticket.id]}
+                    className={`text-xs px-3 py-1 rounded transition disabled:opacity-50 disabled:cursor-not-allowed ${
                       ticket.approved
                         ? "bg-red-600/50 hover:bg-red-600"
                         : "bg-green-600/50 hover:bg-green-600"
                     }`}
                   >
-                    {ticket.approved ? "Revoke" : "Approve"}
+                    {updatingTickets[ticket.id] ? "Updating..." : (ticket.approved ? "Revoke" : "Approve")}
                   </button>
                 )}
 
@@ -366,6 +483,39 @@ export default function AdminPremiereDetail() {
         </div>
 
       </div>
+
+      {/* ARCHIVE CONFIRMATION MODAL */}
+      {archiveModal && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+          <div className="bg-[#0B0B0F] border border-white/20 rounded-2xl max-w-md w-full p-6 space-y-4">
+            <h2 className="text-xl font-bold">Archive Premiere?</h2>
+
+            <div className="p-3 bg-yellow-600/20 border border-yellow-600/30 rounded">
+              <p className="text-sm text-gray-300">{premiere.title}</p>
+            </div>
+
+            <p className="text-sm text-gray-400">
+              This premiere will be moved to history. You can restore it anytime.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleArchive}
+                disabled={archiving}
+                className="flex-1 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 px-4 py-2 rounded-lg font-semibold transition"
+              >
+                {archiving ? "Archiving..." : "🗂️ Archive"}
+              </button>
+              <button
+                onClick={() => setArchiveModal(false)}
+                className="flex-1 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg font-semibold transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

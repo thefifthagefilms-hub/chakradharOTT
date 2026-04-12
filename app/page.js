@@ -61,6 +61,14 @@ function PremiereRow({ premieres, scheduled }) {
   const livePremieres = premieres?.filter(p => p.status === "live") || [];
   const scheduledPremieres = scheduled?.filter(p => p.status !== "live") || [];
 
+  const getTicketInfo = (premiere) => {
+    if (!premiere.ticketLimit || premiere.ticketLimit === 0) return null;
+    const available = Math.max(0, premiere.ticketLimit - (premiere.ticketsSold || 0));
+    if (available === 0) return "🔴 Sold Out";
+    if (available < 20) return `⚠️ ${available} left`;
+    return `${available} seats`;
+  };
+
   return (
     <>
       {livePremieres.length > 0 && (
@@ -76,9 +84,21 @@ function PremiereRow({ premieres, scheduled }) {
                   <div className="absolute inset-0 bg-gradient-to-br from-red-600/40 to-black" />
 
                   <div className="absolute inset-0 p-4 flex flex-col justify-between">
-                    <span className="text-xs bg-red-600 px-2 py-1 rounded-full animate-pulse">
-                      LIVE
-                    </span>
+                    <div className="flex gap-2 flex-wrap">
+                      <span className="text-xs bg-red-600 px-2 py-1 rounded-full animate-pulse">
+                        LIVE
+                      </span>
+                      {p.ticketRequired && (
+                        <span className="text-xs bg-yellow-600 px-2 py-1 rounded-full">
+                          💳 Paid
+                        </span>
+                      )}
+                      {p.ticketLimit > 0 && (
+                        <span className="text-xs bg-white/20 px-2 py-1 rounded-full">
+                          {getTicketInfo(p)}
+                        </span>
+                      )}
+                    </div>
 
                     <h3 className="text-sm font-semibold">
                       {p.title}
@@ -104,9 +124,21 @@ function PremiereRow({ premieres, scheduled }) {
                   <div className="absolute inset-0 bg-gradient-to-br from-yellow-600/40 to-black" />
 
                   <div className="absolute inset-0 p-4 flex flex-col justify-between">
-                    <span className="text-xs bg-yellow-600 px-2 py-1 rounded-full">
-                      SCHEDULED
-                    </span>
+                    <div className="flex gap-2 flex-wrap">
+                      <span className="text-xs bg-yellow-600 px-2 py-1 rounded-full">
+                        SCHEDULED
+                      </span>
+                      {p.ticketRequired && (
+                        <span className="text-xs bg-green-600 px-2 py-1 rounded-full">
+                          💳 ₹{p.ticketPrice}
+                        </span>
+                      )}
+                      {p.ticketLimit > 0 && (
+                        <span className="text-xs bg-white/20 px-2 py-1 rounded-full">
+                          {getTicketInfo(p)}
+                        </span>
+                      )}
+                    </div>
 
                     <h3 className="text-sm font-semibold">
                       {p.title}
